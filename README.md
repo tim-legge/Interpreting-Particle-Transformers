@@ -1,1 +1,1 @@
-# Interpreting-Transformers-for-Jet-Tagging
+# Interpreting Particle Transformer
