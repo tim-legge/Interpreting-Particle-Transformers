@@ -1,3 +1,5 @@
+# This script generated the final Attn. Score/Inter. Score plot for the Top Landscape dataset
+
 from typing import List, Optional
 import timeit
 import awkward as ak
@@ -2314,27 +2316,18 @@ def get_model(model_type='qg',**kwargs):
 
     return model
 
-#qg_model = get_model(model_type='qg', return_pre_softmax=True)
-tl_model = get_model(model_type='tl', return_pre_softmax=True)
-#hls4ml_model = get_model(model_type='hls4ml', return_pre_softmax=True)
-#jck_model = get_model(model_type='jck', return_pre_softmax=True)
-#jc_kinpid_model = get_model(model_type='jck_pid', return_pre_softmax=True)
-#jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 
-#qg_hooks = Pre_Softmax_Hook(model=qg_model)
+tl_model = get_model(model_type='tl', return_pre_softmax=True)
+
 tl_hooks = Pre_Softmax_Hook(model=tl_model)
-#hls4ml_hooks = Pre_Softmax_Hook(model=hls4ml_model)
-#jc_kin_hooks = Pre_Softmax_Hook(model=jck_model)
-#jc_kinpid_hooks = Pre_Softmax_Hook(model=jc_kinpid_model)
-#jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
 
 
 howmanyjets = 500
 
-qgtrained_modelpath = '/part-vol-3/timlegge-ParT-trained/on-qg-run2/on-qg_best_epoch_state.pt'
-tltrained_modelpath = '/part-vol-3/timlegge-ParT-trained/on-tl-run4/on-tl_best_epoch_state.pt'
-jcktrained_modelpath = '/part-vol-3/weaver-core/particle_transformer/models/ParT_kin.pt'
-jc_fulltrained_modelpath = '/part-vol-3/weaver-core/particle_transformer/models/ParT_full.pt'
+qgtrained_modelpath = './model/on-qg-run2_best_epoch_state.pt'
+tltrained_modelpath = './models/on-tl-run4_best_epoch_state.pt'
+jcktrained_modelpath = './models/ParT_kin.pt'
+jc_fulltrained_modelpath = './models/ParT_full.pt'
 
 # QG model loading and inference
 
@@ -2342,11 +2335,11 @@ jc_fulltrained_modelpath = '/part-vol-3/weaver-core/particle_transformer/models/
 
 tl_state_dict = torch.load(tltrained_modelpath, map_location=torch.device('cpu'))
 tl_model.load_state_dict(tl_state_dict)
-tl_pf_features = np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_features.npy')[:howmanyjets]
-tl_pf_vectors = np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_vectors.npy')[:howmanyjets]
-tl_pf_mask = np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_mask.npy')[:howmanyjets]
-tl_pf_points = np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_points.npy')[:howmanyjets]
-tl_labels = np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_labels.npy')[:howmanyjets]
+tl_pf_features = np.load('/path/to/data/storage/tl_pf_features.npy')[:howmanyjets]
+tl_pf_vectors = np.load('/path/to/data/storage/tl_pf_vectors.npy')[:howmanyjets]
+tl_pf_mask = np.load('/path/to/data/storage/tl_pf_mask.npy')[:howmanyjets]
+tl_pf_points = np.load('/path/to/data/storage/tl_pf_points.npy')[:howmanyjets]
+tl_labels = np.load('/path/to/data/storage/tl_labels.npy')[:howmanyjets]
 tl_model.eval()
 with torch.no_grad():
     tl_y_pred= tl_model(torch.from_numpy(tl_pf_points),torch.from_numpy(tl_pf_features),torch.from_numpy(tl_pf_vectors),torch.from_numpy(tl_pf_mask))
@@ -2356,209 +2349,6 @@ tl_interaction = tl_model.get_interactionMatrix()
 
 print('TL done!')
 
-'''
-jck_state_dict = torch.load(jcktrained_modelpath, map_location=torch.device('cpu'))
-jck_model.load_state_dict(jck_state_dict)
-jck_pf_features = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_pf_features.npy')
-jck_pf_vectors  = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_pf_vectors.npy')
-jck_pf_mask     = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_pf_mask.npy')
-jck_pf_points   = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_pf_points.npy')
-jck_labels      = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_labels.npy')
-
-# --- Shuffle all arrays with the same permutation ---
-n = jck_pf_points.shape[0]
-rng = np.random.default_rng()
-perm = rng.permutation(n)
-
-jck_pf_features = jck_pf_features[perm]
-jck_pf_vectors  = jck_pf_vectors[perm]
-jck_pf_mask     = jck_pf_mask[perm]
-jck_pf_points   = jck_pf_points[perm]
-jck_labels      = jck_labels[perm]
-
-# --- Slice after shuffling ---
-jck_pf_features = jck_pf_features[:howmanyjets]
-jck_pf_vectors  = jck_pf_vectors[:howmanyjets]
-jck_pf_mask     = jck_pf_mask[:howmanyjets]
-jck_pf_points   = jck_pf_points[:howmanyjets]
-jck_labels      = jck_labels[:howmanyjets]
-jck_model.eval()
-with torch.no_grad():
-    jck_y_pred= jck_model(torch.from_numpy(jck_pf_points),torch.from_numpy(jck_pf_features),torch.from_numpy(jck_pf_vectors),torch.from_numpy(jck_pf_mask))
-jck_attention = jck_model.get_attention_matrix()
-jck_interaction = jck_model.get_interactionMatrix()
-
-print('JCK done!')
-
-jc_full_state_dict = torch.load(jc_fulltrained_modelpath, map_location=torch.device('cpu'))
-jc_full_model.load_state_dict(jc_full_state_dict)
-jc_full_pf_features = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_features.npy')[:howmanyjets]
-jc_full_pf_vectors = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_vectors.npy')[:howmanyjets]
-jc_full_pf_mask = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_mask.npy')[:howmanyjets]
-jc_full_pf_points = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_points.npy')[:howmanyjets]
-jc_full_labels = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_labels.npy')[:howmanyjets]
-rng = np.random.default_rng(seed=42)
-
-# Make an array of indices and shuffle them
-indices = np.arange(len(jc_full_labels))
-rng.shuffle(indices)
-
-# Apply the shuffle consistently across all arrays
-jc_full_pf_features = jc_full_pf_features[indices]
-jc_full_pf_vectors  = jc_full_pf_vectors[indices]
-jc_full_pf_mask     = jc_full_pf_mask[indices]
-jc_full_pf_points   = jc_full_pf_points[indices]
-jc_full_labels      = jc_full_labels[indices]
-jc_full_model.eval()
-with torch.no_grad():
-    jc_full_y_pred= jc_full_model(torch.from_numpy(jc_full_pf_points),torch.from_numpy(jc_full_pf_features),torch.from_numpy(jc_full_pf_vectors),torch.from_numpy(jc_full_pf_mask))
-jc_full_attention = jc_full_model.get_attention_matrix()
-jc_full_interaction = jc_full_model.get_interactionMatrix()
-'''
-'''
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-
-from matplotlib.ticker import LogLocator, LogFormatterMathtext
-
-# ---- Data (assumes jc_kin_hooks exists) ----
-flat_jck_attn = jc_kin_hooks.pre_softmax_attentions.numpy().flatten()
-flat_jck_inter = jc_kin_hooks.pre_softmax_interactions.numpy().flatten()
-
-# Remove NaN/±inf to avoid histogram errors
-flat_jck_attn = flat_jck_attn[np.isfinite(flat_jck_attn)]
-flat_jck_inter = flat_jck_inter[np.isfinite(flat_jck_inter)]
-
-# ---- Align & compute magnitude ratio |attn| / |inter| ----
-min_len = min(len(flat_jck_attn), len(flat_jck_inter))
-attn_abs  = np.abs(flat_jck_attn[:min_len])
-inter_abs = np.abs(flat_jck_inter[:min_len])
-
-# Avoid divide-by-zero and non-finite values
-mask = (inter_abs > 0) & np.isfinite(attn_abs) & np.isfinite(inter_abs)
-ratio = attn_abs[mask] / inter_abs[mask]
-
-# ---- Plot (probability per bin) ----
-num_bins = 200
-weights = np.ones_like(ratio) / ratio.size  # bars sum to 1 across bins
-
-# ---- Save ----
-#out_path = '/part-vol-3/weaver-core/parTaaron/InterpPlots/JCK_AttnInter_MagnitudeRatio.pdf'
-#os.makedirs(os.path.dirname(out_path), exist_ok=True)
-#plt.savefig(out_path, bbox_inches="tight")
-#plt.show()
-
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-
-# ---- Define bins: 0–1, 1–10, 10–100, 100–1000, 1000–10000, 10000+ ----
-bin_edges = [0, 1, 10, 100, 1000, 10000, np.inf]
-
-# ---- Histogram with probability normalization ----
-counts, edges = np.histogram(ratio, bins=bin_edges)
-probabilities = counts / counts.sum()
-
-# ---- Labels (must be length 6 to match bins-1) ----
-labels = ["0–1", "1–10", "10–100", "100–1k", "1k–10k", "10k+"]
-
-# ---- Plot ----
-fig, ax = plt.subplots(figsize=(8,6), dpi=300)
-x = np.arange(len(probabilities))
-ax.bar(x, probabilities)  # color optional
-
-ax.set_xticks(x)
-ax.set_xticklabels(labels, rotation=30, ha="right")
-
-ax.set_ylabel("Probability")
-ax.set_xlabel("Magnitude of Attn. Scores/Inter. Scores")
-#ax.set_title("JetClass Kinetmatic Probability Distribution of Attention/Interaction Ratio", fontsize=12)
-ax.margins(y=0.05)  # small headroom for annotations
-
-# Annotate probabilities
-#for i, p in enumerate(probabilities):
-#    if p > 0:
-#        ax.text(i, p, f"{p:.3f}", ha="center", va="bottom", fontsize=8)
-
-plt.tight_layout()
-out_path = './JCK_AttnBar.pdf'
-#os.makedirs(os.path.dirname(out_path), exist_ok=True)
-plt.savefig(out_path, bbox_inches="tight")
-plt.show()
-
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-
-# ---- Data (assumes jc_kin_hooks exists) ----
-flat_jc_attn = jc_full_hooks.pre_softmax_attentions.numpy().flatten()
-flat_jc_inter = jc_full_hooks.pre_softmax_interactions.numpy().flatten()
-
-# Remove NaN/±inf to avoid histogram errors
-flat_jc_attn = flat_jc_attn[np.isfinite(flat_jc_attn)]
-flat_jc_inter = flat_jc_inter[np.isfinite(flat_jc_inter)]
-
-# ---- Align & compute magnitude ratio |attn| / |inter| ----
-min_len = min(len(flat_jc_attn), len(flat_jc_inter))
-attn_abs  = np.abs(flat_jc_attn[:min_len])
-inter_abs = np.abs(flat_jc_inter[:min_len])
-
-# Avoid divide-by-zero and non-finite values
-mask = (inter_abs > 0) & np.isfinite(attn_abs) & np.isfinite(inter_abs)
-ratio = attn_abs[mask] / inter_abs[mask]
-
-# ---- Plot (probability per bin) ----
-num_bins = 200
-weights = np.ones_like(ratio) / ratio.size  # bars sum to 1 across bins
-
-# ---- Save ----
-#out_path = '/part-vol-3/weaver-core/parTaaron/InterpPlots/JC_AttnInter_MagnitudeRatio.pdf'
-#os.makedirs(os.path.dirname(out_path), exist_ok=True)
-#plt.savefig(out_path, bbox_inches="tight")
-#plt.show()
-
-
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-
-# ---- Define bins: 0–1, 1–10, 10–100, 100–1000, 1000–10000, 10000–100000, 100000+ ----
-bin_edges = [0, 1, 10, 100, 1000, 10000, 100000, 1000000, np.inf]
-
-# ---- Histogram with probability normalization ----
-counts, edges = np.histogram(ratio, bins=bin_edges)
-probabilities = counts / counts.sum()
-
-# ---- Labels (must be length bins-1 = 7) ----
-labels = ["0–1", "1–10", "10–100", "100–1k", "1k–10k", "10k–100k", "100k - 1000k", "1000k+"]
-
-# ---- Plot ----
-fig, ax = plt.subplots(figsize=(8, 6), dpi=300)
-x = np.arange(len(probabilities))
-ax.bar(x, probabilities)
-
-ax.set_xticks(x)
-ax.set_xticklabels(labels, rotation=30, ha="right")
-
-ax.set_ylabel("Probability")
-ax.set_xlabel("Magnitude of Attn. Scores/Inter. Scores")
-#ax.set_title("JetClass Probability Distribution of Attention/Interaction Ratio", fontsize=12)
-ax.margins(y=0.05)  # small headroom for annotations
-
-# Annotate probabilities
-#for i, p in enumerate(probabilities):
-#    if p > 0:
-#        ax.text(i, p, f"{p:.3f}", ha="center", va="bottom", fontsize=8)
-c
-plt.tight_layout() what 
-
-out_path = './JC_AttnBar.pdf'
-
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-'''
 # ---- Data ----
 flat_tl_attn = tl_hooks.pre_softmax_attentions.numpy().flatten()
 flat_tl_inter = tl_hooks.pre_softmax_interactions.numpy().flatten()
@@ -2580,16 +2370,6 @@ ratio = attn_abs[mask] / inter_abs[mask]
 num_bins = 10
 weights = np.ones_like(ratio) / ratio.size  # bars sum to 1 across bins
 
-# ---- Save (renamed path) ----
-#out_path = '/part-vol-3/weaver-core/parTaaron/InterpPlots/TL_AttnInter_MagnitudeRatio.pdf'
-#os.makedirs(os.path.dirname(out_path), exist_ok=True)
-#plt.savefig(out_path, bbox_inches="tight")
-#plt.show()
-
-#os.makedirs(os.path.dirname(out_path), exist_ok=True)
-#plt.savefig(out_path, bbox_inches="tight")
-plt.show()
-
 bin_edges = [0, 1, 10, 100, 1000, 10000, 100000, 1000000, np.inf]
 
 # ---- Histogram with probability normalization ----
@@ -2609,18 +2389,13 @@ ax.set_xticklabels(labels, rotation=30, ha="right")
 
 ax.set_ylabel("Probability")
 ax.set_xlabel("Magnitude of Attn. Score/Inter. Score")
-#ax.set_title("Top Landscape Probability Distribution of Attention/Interaction Ratio", fontsize=12)
-ax.margins(y=0.05)  # small headroom for annotations
 
-# Annotate probabilities
-#for i, p in enumerate(probabilities):
-#    if p > 0:
-#        ax.text(i, p, f"{p:.3f}", ha="center", va="bottom", fontsize=8)
+ax.margins(y=0.05)  
 
 plt.tight_layout()
 
 out_path = './TL_AttnBar.pdf'
-#os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
 plt.savefig(out_path, bbox_inches="tight")
 plt.show()
 print('TL Plots finished!')

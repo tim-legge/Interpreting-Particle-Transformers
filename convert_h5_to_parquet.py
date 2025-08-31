@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+# Used to convert HLS4ML's hdf5 files into parquet format for easier use in weaver training
+
 """
 Minimal script to convert HDF5 files to Parquet format.
 Creates a schema that mimics the reference QuarkGluon parquet structure.
@@ -196,8 +199,8 @@ def convert_h5_to_parquet(h5_file_path: str, parquet_file_path: str) -> None:
 def main():
     """Main conversion function."""
     # Configuration
-    input_dir = "/mnt/c/Interpretability_Data/HLS4ML/LHCjet_150p_train_h5storage"
-    output_dir = "/mnt/c/Interpretability_Data/HLS4ML/LHCjet_150p_train_parquet"
+    input_dir = "/path/to/HLS4ML/h5/storage"
+    output_dir = "/path/to/HLS4ML/parquet/storage"
     
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
@@ -235,7 +238,7 @@ if __name__ == "__main__":
             print(f"Error: Input file {h5_file} not found.")
     else:
         # Default: convert test file or run batch conversion
-        h5_file = "/mnt/c/Interpretability_Data/HLS4ML/LHCjet_150p_train_h5storage/jetImage_0_150p_0_10000.h5"
+        h5_file = "/path/to/HLS4ML/h5/storage/jetImage_0_150p_0_10000.h5"
         parquet_file = "/tmp/test_conversion.parquet"
         
         if os.path.exists(h5_file):

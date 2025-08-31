@@ -33,6 +33,32 @@ import numpy as np
 from tqdm import tqdm
 from torch._torch_docs import reproducibility_notes, sparse_support_notes, tf32_notes
 
+def _clip(a, min_value, max_value):
+    assert isinstance(a, ak.Array), "expected awkward array"
+    main_list = []
+    for i in range(len(a)):
+        sublist = ak.to_list(a[i])
+        sublist = np.clip(sublist, min_value, max_value)
+        main_list.append(sublist)
+    return ak.from_iter(main_list)
+
+def _pad(a, maxlen=128, value=0, dtype='float32'):
+        if isinstance(a, np.ndarray) and a.ndim >= 2 and a.shape[1] == maxlen:
+            return a
+        elif isinstance(a, ak.Array):
+            if a.ndim == 1:
+                a = ak.unflatten(a, 1)
+            a = ak.fill_none(ak.pad_none(a, maxlen, clip=True), value)
+            return ak.values_astype(a, dtype)
+        else:
+            x = (np.ones((len(a), maxlen)) * value).astype(dtype)
+            for idx, s in enumerate(a):
+                if not len(s):
+                    continue
+                trunc = s[:maxlen].astype(dtype)
+                x[idx, :len(trunc)] = trunc
+            return x
+
 def build_features_and_labels(tree, transform_features=True):
 
     # load arrays from the tree

@@ -5,14 +5,14 @@ plt.style.use(hep.style.ROOT)
 
 fontsize = 26
 
-hist = np.load('/part-vol-3/timlegge-ParT-trained/batched_hists/jc_full_qcdonly_hist_distribution_batch_40.npy')
+hist = np.load('/path/to/storage/jc_full_qcdonly_hist_distribution_batch_40.npy')
 
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 
 # 🔧 Folder with your precomputed histograms
-folder = "/part-vol-3/timlegge-ParT-trained/batched_hists"
+folder = "/path/to/storage"
 
 # Collect and aggregate all histograms
 all_hist = None
@@ -48,7 +48,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 🔧 Folder with precomputed histograms
-folder = "/part-vol-3/timlegge-ParT-trained/batched_hists"
+folder = "/path/to/storage"
 
 # Aggregate all histograms
 all_hist = None
@@ -96,7 +96,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 🔧 Folder with precomputed histograms
-folder = "/part-vol-3/timlegge-ParT-trained/batched_hists"
+folder = "/path/to/storage"
 
 # Aggregate all histograms
 all_hist = None
@@ -144,7 +144,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 🔧 Folder with precomputed histograms
-folder = "/part-vol-3/timlegge-ParT-trained/batched_hists"
+folder = "/path/to/storage"
 
 # Aggregate all histograms
 all_hist = None
@@ -192,7 +192,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 🔧 Folder with precomputed histograms
-folder = "/part-vol-3/timlegge-ParT-trained/batched_hists"
+folder = "/path/to/storage"
 
 # Aggregate all histograms
 all_hist = None
@@ -240,7 +240,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 🔧 Folder with precomputed histograms
-folder = "/part-vol-3/timlegge-ParT-trained/batched_hists"
+folder = "/path/to/storage"
 
 # Aggregate all histograms
 all_hist = None

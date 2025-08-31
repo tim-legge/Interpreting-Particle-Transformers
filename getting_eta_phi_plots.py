@@ -2348,24 +2348,24 @@ start_jet = sys.argv[1]
 start_jet = int(start_jet)
 howmanyjets = 1
 
-qgtrained_modelpath = '/home/tim_legge/save_qg_model/on-qg-run2_best_epoch_state.pt'
-tltrained_modelpath = './save_tl_model/on-tl-run4_best_epoch_state.pt'
-hls4mltrained_modelpath = '/home/tim_legge/ParT_Interpretability/save_hls4ml_model/on-hls4ml-run3_best_epoch_state.pt'
+qgtrained_modelpath = './models/on-qg-run2_best_epoch_state.pt'
+tltrained_modelpath = './models/on-tl-run4_best_epoch_state.pt'
+hls4mltrained_modelpath = './models/on-hls4ml-run3_best_epoch_state.pt'
 jcktrained_modelpath = './models/ParT_kin.pt'
 jc_kinpidtrained_modelpath = './models/ParT_kinpid.pt'
 jc_fulltrained_modelpath = './models/ParT_full.pt'
 
-data_stem = '/part-vol-3/timlegge-ParT-trained/'
+data_stem = '/location/of/storage/'
 
 # JetClass kin model loading and inference
 
 jck_state_dict = torch.load(jcktrained_modelpath, map_location=torch.device('cpu'))
 jck_model.load_state_dict(jck_state_dict)
-jck_pf_features = np.load(data_stem+'vol_jc_kin_data/jc_kin_pf_features.npy')[start_jet:start_jet+howmanyjets]
-jck_pf_vectors = np.load(data_stem+'vol_jc_kin_data/jc_kin_pf_vectors.npy')[start_jet:start_jet+howmanyjets]
-jck_pf_mask = np.load(data_stem+'vol_jc_kin_data/jc_kin_pf_mask.npy')[start_jet:start_jet+howmanyjets]
-jck_pf_points = np.load(data_stem+'vol_jc_kin_data/jc_kin_pf_points.npy')[start_jet:start_jet+howmanyjets]
-jck_labels = np.load(data_stem+'vol_jc_kin_data/jc_kin_labels.npy')[start_jet:start_jet+howmanyjets]
+jck_pf_features = np.load(data_stem+'jc_kin_pf_features.npy')[start_jet:start_jet+howmanyjets]
+jck_pf_vectors = np.load(data_stem+'jc_kin_pf_vectors.npy')[start_jet:start_jet+howmanyjets]
+jck_pf_mask = np.load(data_stem+'jc_kin_pf_mask.npy')[start_jet:start_jet+howmanyjets]
+jck_pf_points = np.load(data_stem+'jc_kin_pf_points.npy')[start_jet:start_jet+howmanyjets]
+jck_labels = np.load(data_stem+'jc_kin_labels.npy')[start_jet:start_jet+howmanyjets]
 jck_model.eval()
 with torch.no_grad():
     jck_y_pred= jck_model(torch.from_numpy(jck_pf_points),torch.from_numpy(jck_pf_features),torch.from_numpy(jck_pf_vectors),torch.from_numpy(jck_pf_mask))
@@ -2378,11 +2378,11 @@ print('JCK done!')
 
 jc_full_state_dict = torch.load(jc_fulltrained_modelpath, map_location=torch.device('cpu'))
 jc_full_model.load_state_dict(jc_full_state_dict)
-jc_full_pf_features = np.load(data_stem+'vol_jc_full_data/jc_full_pf_features.npy')[start_jet:start_jet+howmanyjets]
-jc_full_pf_vectors = np.load(data_stem+'vol_jc_full_data/jc_full_pf_vectors.npy')[start_jet:start_jet+howmanyjets]
-jc_full_pf_mask = np.load(data_stem+'vol_jc_full_data/jc_full_pf_mask.npy')[start_jet:start_jet+howmanyjets]
-jc_full_pf_points = np.load(data_stem+'vol_jc_full_data/jc_full_pf_points.npy')[start_jet:start_jet+howmanyjets]
-jc_full_labels = np.load(data_stem+'vol_jc_full_data/jc_full_labels.npy')[start_jet:start_jet+howmanyjets]
+jc_full_pf_features = np.load(data_stem+'jc_full_pf_features.npy')[start_jet:start_jet+howmanyjets]
+jc_full_pf_vectors = np.load(data_stem+'jc_full_pf_vectors.npy')[start_jet:start_jet+howmanyjets]
+jc_full_pf_mask = np.load(data_stem+'jc_full_pf_mask.npy')[start_jet:start_jet+howmanyjets]
+jc_full_pf_points = np.load(data_stem+'jc_full_pf_points.npy')[start_jet:start_jet+howmanyjets]
+jc_full_labels = np.load(data_stem+'jc_full_labels.npy')[start_jet:start_jet+howmanyjets]
 jc_full_model.eval()
 with torch.no_grad():
     jc_full_y_pred= jc_full_model(torch.from_numpy(jc_full_pf_points),torch.from_numpy(jc_full_pf_features),torch.from_numpy(jc_full_pf_vectors),torch.from_numpy(jc_full_pf_mask))
@@ -2395,13 +2395,13 @@ hadronic_top_exists = False
 leptonic_top_exists = False
 
 # see if hadronic tops exist in selected batch
-#for jet in range(jck_labels.shape[0]):
-#    if np.argmax(jck_labels[jet]) == 8:
-#        print('Hadronic top found in batch!')
-#        hadronic_top_jet = jet
-#        hadronic_top_exists = True
-#        print(f'Jet index: {hadronic_top_jet}')
-#        break
+for jet in range(jck_labels.shape[0]):
+    if np.argmax(jck_labels[jet]) == 8:
+        print('Hadronic top found in batch!')
+        hadronic_top_jet = jet
+        hadronic_top_exists = True
+        print(f'Jet index: {hadronic_top_jet}')
+        break
 
 # see if leptonic tops exist in selected batch
 
@@ -2413,11 +2413,11 @@ for jet in range(jck_labels.shape[0]):
         print(f'Jet index: {leptonic_top_jet}')
         break
 
-#assert hadronic_top_exists or leptonic_top_exists, "No tops found in selected batch!"
+assert hadronic_top_exists or leptonic_top_exists, "No tops found in selected batch!"
 assert leptonic_top_exists, "No tops found in selected batch!"
 
 jc_kin_padding = jc_kin_hooks.cut_padding(jc_kin_hooks.pre_softmax_attentions, jck_pf_mask)
-#jc_kin_pre_softmax_inter = jc_kin_hooks.cut_padding(jc_kin_hooks.pre_softmax_interactions, jck_pf_mask)
+jc_kin_pre_softmax_inter = jc_kin_hooks.cut_padding(jc_kin_hooks.pre_softmax_interactions, jck_pf_mask)
 
 jc_full_padding = jc_full_hooks.cut_padding(jc_full_hooks.pre_softmax_attentions, jc_full_pf_mask)
 

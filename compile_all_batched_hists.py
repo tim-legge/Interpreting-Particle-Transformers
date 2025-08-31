@@ -1,4 +1,6 @@
-# Compile distributions from persistent volume storage
+# Compiled distributions from persistent volume storage
+# Created a compiled_hist.npy file for each distribution we wanted to plot
+# (we did not end up using the figs plotted here)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,14 +15,14 @@ print('Loading QG hists...')
 stem = 'qg_attention_distribution_batch_'
 num_files = 50
 
-if os.path.exists('/part-vol-3/timlegge-ParT-trained/batched_hists/qg_attention_distribution_batch_0.npy'):
+if os.path.exists('/location/of/storage/qg_attention_distribution_batch_0.npy'):
     print('QG Files detected')
-    compiled = np.zeros_like(np.load('/part-vol-3/timlegge-ParT-trained/batched_hists/qg_attention_distribution_batch_0.npy', allow_pickle=True))
+    compiled = np.zeros_like(np.load('/location/of/storage/qg_attention_distribution_batch_0.npy', allow_pickle=True))
 
-for f in os.listdir('/part-vol-3/timlegge-ParT-trained/batched_hists/'):
+for f in os.listdir('/location/of/storage/'):
     if stem in f:
         print(f'Loading {f}...')
-        arr = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_hists/{f}', allow_pickle=True)
+        arr = np.load(f'/location/of/storage/{f}', allow_pickle=True)
         compiled += arr
 
 # normalize compiled
@@ -28,7 +30,7 @@ compiled /= compiled.sum()
 
 print('All files loaded, now saving...')
 
-np.save('/part-vol-3/timlegge-ParT-trained/qg_compiled_hist.npy', compiled)
+np.save('/location/of/storage/qg_compiled_hist.npy', compiled)
 
 print('Saved! Now plotting...')
 
@@ -65,14 +67,14 @@ print('QG plot saved! Now for TL...')
 stem = 'tl_topsonly_hist_distribution_batch_'
 num_files = 50
 
-if os.path.exists('/part-vol-3/timlegge-ParT-trained/batched_hists/tl_hist_distribution_batch_0.npy'):
+if os.path.exists('/location/of/storage/tl_hist_distribution_batch_0.npy'):
     print('TL Files detected')
-    compiled = np.zeros_like(np.load('/part-vol-3/timlegge-ParT-trained/batched_hists/tl_hist_distribution_batch_0.npy', allow_pickle=True))
+    compiled = np.zeros_like(np.load('/location/of/storage/tl_hist_distribution_batch_0.npy', allow_pickle=True))
 
-for f in os.listdir('/part-vol-3/timlegge-ParT-trained/batched_hists/'):
+for f in os.listdir('/location/of/storage/'):
     if stem in f:
         print(f'Loading {f}...')
-        arr = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_hists/{f}', allow_pickle=True)
+        arr = np.load(f'/location/of/storage/{f}', allow_pickle=True)
         compiled += arr
 
 # normalize compiled
@@ -80,7 +82,7 @@ compiled /= compiled.sum()
 
 print('All files loaded, now saving...')
 
-np.save('/part-vol-3/timlegge-ParT-trained/tl_topsonly_compiled_hist.npy', compiled)
+np.save('/location/of/storage/tl_topsonly_compiled_hist.npy', compiled)
 
 print('Saved! Now plotting...')
 
@@ -117,14 +119,14 @@ print('TL Tops only plot saved! Now for TL QCD only...')
 stem = 'tl_qcdonly_hist_distribution_batch_'
 num_files = 50
 
-if os.path.exists('/part-vol-3/timlegge-ParT-trained/batched_hists/tl_qcdonly_hist_distribution_batch_0.npy'):
+if os.path.exists('/location/of/storage/tl_qcdonly_hist_distribution_batch_0.npy'):
     print('TL Files detected')
-    compiled = np.zeros_like(np.load('/part-vol-3/timlegge-ParT-trained/batched_hists/tl_qcdonly_hist_distribution_batch_0.npy', allow_pickle=True))
+    compiled = np.zeros_like(np.load('/location/of/storage/tl_qcdonly_hist_distribution_batch_0.npy', allow_pickle=True))
 
-for f in os.listdir('/part-vol-3/timlegge-ParT-trained/batched_hists/'):
+for f in os.listdir('/location/of/storage/'):
     if stem in f:
         print(f'Loading {f}...')
-        arr = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_hists/{f}', allow_pickle=True)
+        arr = np.load(f'/location/of/storage/{f}', allow_pickle=True)
         compiled += arr
 
 # normalize compiled
@@ -132,7 +134,7 @@ compiled /= compiled.sum()
 
 print('All files loaded, now saving...')
 
-np.save('/part-vol-3/timlegge-ParT-trained/tl_qcdonly_compiled_hist.npy', compiled)
+np.save('/location/of/storage/tl_qcdonly_compiled_hist.npy', compiled)
 
 print('TL QCD Dist saved! Now plotting...')
 
@@ -169,14 +171,14 @@ print('TL QCD only plot saved! All done.')
 stem = 'tl_run4_hist_distribution_batch_'
 num_files = 50
 
-if os.path.exists('/part-vol-3/timlegge-ParT-trained/batched_hists/tl_run4_hist_distribution_batch_0.npy'):
+if os.path.exists('/location/of/storage/tl_run4_hist_distribution_batch_0.npy'):
     print('TL Files detected')
-    compiled = np.zeros_like(np.load('/part-vol-3/timlegge-ParT-trained/batched_hists/tl_run4_hist_distribution_batch_0.npy', allow_pickle=True))
+    compiled = np.zeros_like(np.load('/location/of/storage/tl_run4_hist_distribution_batch_0.npy', allow_pickle=True))
 
-for f in os.listdir('/part-vol-3/timlegge-ParT-trained/batched_hists/'):
+for f in os.listdir('/location/of/storage/'):
     if stem in f:
         print(f'Loading {f}...')
-        arr = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_hists/{f}', allow_pickle=True)
+        arr = np.load(f'/location/of/storage/{f}', allow_pickle=True)
         compiled += arr
 
 # normalize compiled
@@ -184,7 +186,7 @@ compiled /= compiled.sum()
 
 print('All files loaded, now saving...')
 
-np.save('/part-vol-3/timlegge-ParT-trained/tl_run4_compiled_hist.npy', compiled)
+np.save('/location/of/storage/tl_run4_compiled_hist.npy', compiled)
 
 print('Saved! Now plotting...')
 
@@ -221,14 +223,14 @@ print('TL plot saved!')
 stem = 'jc_kin_topsonly_hist_distribution_batch_'
 num_files = 50
 
-if os.path.exists('/part-vol-3/timlegge-ParT-trained/batched_hists/jc_kin_hist_distribution_batch_0.npy'):
+if os.path.exists('/location/of/storage/jc_kin_hist_distribution_batch_0.npy'):
     print('TL Files detected')
-    compiled = np.zeros_like(np.load('/part-vol-3/timlegge-ParT-trained/batched_hists/jc_kin_topsonly_hist_distribution_batch_0.npy', allow_pickle=True))
+    compiled = np.zeros_like(np.load('/location/of/storage/jc_kin_topsonly_hist_distribution_batch_0.npy', allow_pickle=True))
 
-for f in os.listdir('/part-vol-3/timlegge-ParT-trained/batched_hists/'):
+for f in os.listdir('/location/of/storage/'):
     if stem in f:
         print(f'Loading {f}...')
-        arr = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_hists/{f}', allow_pickle=True)
+        arr = np.load(f'/location/of/storage/{f}', allow_pickle=True)
         compiled += arr
 
 # normalize compiled
@@ -236,7 +238,7 @@ compiled /= compiled.sum()
 
 print('All files loaded, now saving...')
 
-np.save('/part-vol-3/timlegge-ParT-trained/jc_kin_topsonly_compiled_hist.npy', compiled)
+np.save('/location/of/storage/jc_kin_topsonly_compiled_hist.npy', compiled)
 
 print('Saved! Now plotting...')
 
@@ -273,14 +275,14 @@ print('JetClass kin top-only plot saved!')
 stem = 'jc_kin_qcdonly_hist_distribution_batch_'
 num_files = 50
 
-if os.path.exists('/part-vol-3/timlegge-ParT-trained/batched_hists/jc_kin_qcdonly_hist_distribution_batch_0.npy'):
+if os.path.exists('/location/of/storage/jc_kin_qcdonly_hist_distribution_batch_0.npy'):
     print('JC Files detected')
-    compiled = np.zeros_like(np.load('/part-vol-3/timlegge-ParT-trained/batched_hists/jc_kin_qcdonly_hist_distribution_batch_0.npy', allow_pickle=True))
+    compiled = np.zeros_like(np.load('/location/of/storage/jc_kin_qcdonly_hist_distribution_batch_0.npy', allow_pickle=True))
 
-for f in os.listdir('/part-vol-3/timlegge-ParT-trained/batched_hists/'):
+for f in os.listdir('/location/of/storage/'):
     if stem in f:
         print(f'Loading {f}...')
-        arr = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_hists/{f}', allow_pickle=True)
+        arr = np.load(f'/location/of/storage/{f}', allow_pickle=True)
         compiled += arr
 
 # normalize compiled
@@ -288,7 +290,7 @@ compiled /= compiled.sum()
 
 print('All files loaded, now saving...')
 
-np.save('/part-vol-3/timlegge-ParT-trained/jc_kin_qcdonly_compiled_hist.npy', compiled)
+np.save('/location/of/storage/jc_kin_qcdonly_compiled_hist.npy', compiled)
 
 print('Saved! Now plotting...')
 
@@ -325,14 +327,14 @@ print('JetClass kin QCD-only plot saved!')
 stem = 'jc_full_topsonly_hist_distribution_batch_'
 num_files = 50
 
-if os.path.exists('/part-vol-3/timlegge-ParT-trained/batched_hists/jc_full_hist_distribution_batch_0.npy'):
+if os.path.exists('/location/of/storage/jc_full_hist_distribution_batch_0.npy'):
     print('TL Files detected')
-    compiled = np.zeros_like(np.load('/part-vol-3/timlegge-ParT-trained/batched_hists/jc_full_topsonly_hist_distribution_batch_0.npy', allow_pickle=True))
+    compiled = np.zeros_like(np.load('/location/of/storage/jc_full_topsonly_hist_distribution_batch_0.npy', allow_pickle=True))
 
-for f in os.listdir('/part-vol-3/timlegge-ParT-trained/batched_hists/'):
+for f in os.listdir('/location/of/storage/'):
     if stem in f:
         print(f'Loading {f}...')
-        arr = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_hists/{f}', allow_pickle=True)
+        arr = np.load(f'/location/of/storage/{f}', allow_pickle=True)
         compiled += arr
 
 # normalize compiled
@@ -340,7 +342,7 @@ compiled /= compiled.sum()
 
 print('All files loaded, now saving...')
 
-np.save('/part-vol-3/timlegge-ParT-trained/jc_full_topsonly_compiled_hist.npy', compiled)
+np.save('/location/of/storage/jc_full_topsonly_compiled_hist.npy', compiled)
 
 print('Saved! Now plotting...')
 
@@ -357,9 +359,6 @@ fig, ax = plt.subplots(figsize=(8, 6), dpi=300)
 # Plot bar graph with equal-width bars
 ax.bar(bin_centers, compiled, width=equal_width, log=False)  # No log scale for clearer visualization
 
-# Set custom x-tick locations and labels (optional)
-#ax.set_xticks(bin_centers, 0.1)
-#ax.set_xticklabels([f'{edge:.2f}' for edge in bin_centers], fontsize=10, fontweight='bold')
 
 # Set x and y axis labels
 ax.set_xlabel('Attention Score', fontsize=14)
@@ -377,14 +376,14 @@ print('JetClass kin top-only plot saved!')
 stem = 'jc_full_qcdonly_hist_distribution_batch_'
 num_files = 50
 
-if os.path.exists('/part-vol-3/timlegge-ParT-trained/batched_hists/jc_full_qcdonly_hist_distribution_batch_0.npy'):
+if os.path.exists('/location/of/storage/jc_full_qcdonly_hist_distribution_batch_0.npy'):
     print('JC Files detected')
-    compiled = np.zeros_like(np.load('/part-vol-3/timlegge-ParT-trained/batched_hists/jc_full_qcdonly_hist_distribution_batch_0.npy', allow_pickle=True))
+    compiled = np.zeros_like(np.load('/location/of/storage/jc_full_qcdonly_hist_distribution_batch_0.npy', allow_pickle=True))
 
-for f in os.listdir('/part-vol-3/timlegge-ParT-trained/batched_hists/'):
+for f in os.listdir('/location/of/storage/'):
     if stem in f:
         print(f'Loading {f}...')
-        arr = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_hists/{f}', allow_pickle=True)
+        arr = np.load(f'/location/of/storage/{f}', allow_pickle=True)
         compiled += arr
 
 # normalize compiled
@@ -392,7 +391,7 @@ compiled /= compiled.sum()
 
 print('All files loaded, now saving...')
 
-np.save('/part-vol-3/timlegge-ParT-trained/jc_full_qcdonly_compiled_hist.npy', compiled)
+np.save('/location/of/storage/jc_full_qcdonly_compiled_hist.npy', compiled)
 
 print('Saved! Now plotting...')
 

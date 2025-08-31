@@ -1,4 +1,7 @@
-# Modified from QG_and_jc_full_attentionGraphs.ipynb
+# This script carries out the batched loading of the JetClass dataset and stores it in a specified 
+# dir if it does not yet exist. It proceeds to run inference on each batch up to the full 100,000 jets 
+# and store resulting attention matrices in .npy files. Finally, it collects the values in each matrix, 
+# storing those into 20-bin histogram .npy files as well. This prepares the data for compile_all_batched_hists.
 
 import numpy as np
 import awkward as ak
@@ -1431,7 +1434,7 @@ def load_data(dataset_type='qg', batch_size=300):
         #            return data
         elif dataset_type == 'jck':
             # Try to load JetClass data
-            data_path = '/part-vol-3/timlegge-ParT-trained/JetClass_example_100k.root'
+            data_path = '/path/to/storage/JetClass_example_100k.root'
             if os.path.exists(data_path):
                 print(f"Loading actual JetClass data from {data_path}")
                 with uproot.open(data_path)['tree'] as tree:
@@ -1450,7 +1453,7 @@ def load_data(dataset_type='qg', batch_size=300):
 
         elif dataset_type == 'jck_pid':
             # Try to load JetClass data w/ PIDs
-            data_path = '/part-vol-3/timlegge-ParT-trained/JetClass_example_100k.root'
+            data_path = '/path/to/storage/JetClass_example_100k.root'
             if os.path.exists(data_path):
                 print(f"Loading actual JetClass data from {data_path}")
                 with uproot.open(data_path)['tree'] as tree:
@@ -1466,7 +1469,7 @@ def load_data(dataset_type='qg', batch_size=300):
                     return data
         elif dataset_type == 'jc_full':
             # Try to load JetClass data w/ full features
-            data_path = '/part-vol-3/timlegge-ParT-trained/JetClass_example_100k.root'
+            data_path = '/path/to/storage/JetClass_example_100k.root'
             if os.path.exists(data_path):
                 print(f"Loading actual JetClass data from {data_path}")
                 with uproot.open(data_path)['tree'] as tree:
@@ -1486,48 +1489,34 @@ def load_data(dataset_type='qg', batch_size=300):
 
 # Create sample data for both models
 
-if os.path.getsize('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_points.npy') == 0:
-    #os.mkdir('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/')
-    #os.mkdir('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/')
+if os.path.getsize('/path/to/storage/vol_jc_full_data/jc_full_pf_points.npy') == 0:
 
     print("Loading data for testing...")
-    #jc_kin_data = load_data('jc_kin', batch_size=None)
     jc_full_data = load_data('jc_full', batch_size=None)
 
     print('Loaded data.')
 
-    #for type, array in jc_kin_data.items():
-    #    np.save(f'/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_{type}.npy', array)
     for type, array in jc_full_data.items():
-        with open(f'/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_{type}.npy', 'wb') as f:
+        with open(f'/path/to/storage/jc_full_data/jc_full_{type}.npy', 'wb') as f:
             np.save(f, array)
 
 
 else:
-    #jc_kin_data = {
-    #    'pf_points': np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_pf_points.npy'),
-    #    'pf_features': np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_pf_features.npy'),
-    #    'pf_vectors': np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_pf_vectors.npy'),
-    #    'pf_mask': np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_pf_mask.npy'),
-    #    'labels': np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_labels.npy')}
     jc_full_data = {
-        'pf_points': np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_points.npy'),
-        'pf_features': np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_features.npy'),
-        'pf_vectors': np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_vectors.npy'),
-        'pf_mask': np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_mask.npy'),
-        'labels': np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_labels.npy')}
+        'pf_points': np.load('/path/to/storage/vol_jc_full_data/jc_full_pf_points.npy'),
+        'pf_features': np.load('/path/to/storage/vol_jc_full_data/jc_full_pf_features.npy'),
+        'pf_vectors': np.load('/path/to/storage/vol_jc_full_data/jc_full_pf_vectors.npy'),
+        'pf_mask': np.load('/path/to/storage/vol_jc_full_data/jc_full_pf_mask.npy'),
+        'labels': np.load('/path/to/storage/vol_jc_full_data/jc_full_labels.npy')}
 
 print(f"Data loaded (and saved to .npy if it was not there already):")
 print(f"Feature dimensions:")
-#print(f"  JetClass (kin): {jc_kin_data['pf_features'].shape[1]} features")
+
 print(f"  JetClass (full): {jc_full_data['pf_features'].shape[1]} features")
 
 # access data from local .npys 
 
-#jc_kintrained_modelpath = './models/ParT_kin.pt'
 jc_fulltrained_modelpath = './models/ParT_full.pt'
-#hls4mltrained_modelpath = '/home/tim_legge/ParT_Interpretability/save_hls4ml_model/on-hls4ml-run2_best_epoch_state.pt'
-#jcktrained_modelpath = './models/ParT_kin.pt'
 
 print('Loading models...')
 
@@ -1537,19 +1526,19 @@ jc_full_model, _ = get_model('jc_full')
 # QG model loading and inference
 
 # We expect some memory issues when loading full dataset
-# so set up a very basic checkpoint/batching system for saving inference results
+# so set up a checkpoint/batching system for saving inference results
 
 jc_full_state_dict = torch.load(jc_fulltrained_modelpath, map_location=torch.device('cpu'))
 
 batch_to_load = 2000
 
-if not os.path.exists('/part-vol-3/timlegge-ParT-trained/jc_full_counter.txt'):
+if not os.path.exists('/path/to/storage/jc_full_counter.txt'):
     counter = 0
-    with open('/part-vol-3/timlegge-ParT-trained/jc_full_counter.txt', 'w') as f:
+    with open('/path/to/storage/jc_full_counter.txt', 'w') as f:
         f.write(str(counter))
 else:
     print('Counter file exists, resuming from last batch')
-    with open('/part-vol-3/timlegge-ParT-trained/jc_full_counter.txt', 'r') as f:
+    with open('/path/to/storage/jc_full_counter.txt', 'r') as f:
         counter = int(f.read().strip())
 
 if counter >= 51:
@@ -1576,12 +1565,12 @@ else:
                 jc_full_qcdonly_attention.append([layer[jet] for layer in jc_full_attention])
             else: #all other labels
                 continue
-        np.save(f'/part-vol-3/timlegge-ParT-trained/batched_attns/jc_full_topsonly_attention_batch_{counter}.npy', jc_full_topsonly_attention)
+        np.save(f'/path/to/storage/batched_attns/jc_full_topsonly_attention_batch_{counter}.npy', jc_full_topsonly_attention)
         print(f'Saved {len(jc_full_topsonly_attention)} top jets attention for batch {counter}')
-        np.save(f'/part-vol-3/timlegge-ParT-trained/batched_attns/jc_full_qcdonly_attention_batch_{counter}.npy', jc_full_qcdonly_attention)
+        np.save(f'/path/to/storage/batched_attns/jc_full_qcdonly_attention_batch_{counter}.npy', jc_full_qcdonly_attention)
         print(f'Saved {len(jc_full_qcdonly_attention)} qcd jets attention for batch {counter}')
         print(f"Processed batch {counter} - inferred from jets {counter*batch_to_load} to {(counter+1)*batch_to_load}")
-        with open('/part-vol-3/timlegge-ParT-trained/jc_full_counter.txt', 'w') as f:
+        with open('/path/to/storage/jc_full_counter.txt', 'w') as f:
             f.write(str(counter+1))
         counter += 1
 
@@ -1617,13 +1606,13 @@ def attention_generator(attention, chunk_size):
 # Attention distributions - run with similar batching algorithm as above
 # first is topsonly
 
-if not os.path.exists('/part-vol-3/timlegge-ParT-trained/jc_full_topsonly_dist_counter.txt'):
+if not os.path.exists('/path/to/storage/jc_full_topsonly_dist_counter.txt'):
     jc_full_topsonly_dist_counter = 0
-    with open('/part-vol-3/timlegge-ParT-trained/jc_full_topsonly_dist_counter.txt', 'w') as f:
+    with open('/path/to/storage/jc_full_topsonly_dist_counter.txt', 'w') as f:
         f.write(str(jc_full_topsonly_dist_counter))
 else:
     print('Distribution counter file exists, resuming from last batch')
-    with open('/part-vol-3/timlegge-ParT-trained/jc_full_topsonly_dist_counter.txt', 'r') as f:
+    with open('/path/to/storage/jc_full_topsonly_dist_counter.txt', 'r') as f:
         jc_full_topsonly_dist_counter = int(f.read().strip())
 
 if jc_full_topsonly_dist_counter >= 51:
@@ -1631,12 +1620,12 @@ if jc_full_topsonly_dist_counter >= 51:
 else:
     while jc_full_topsonly_dist_counter < 51:
         print(f"Processing distribution batch {jc_full_topsonly_dist_counter}")
-        attention = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_attns/jc_full_topsonly_attention_batch_{jc_full_topsonly_dist_counter}.npy', allow_pickle=True)
+        attention = np.load(f'/path/to/storage/batched_attns/jc_full_topsonly_attention_batch_{jc_full_topsonly_dist_counter}.npy', allow_pickle=True)
         # Flatten the list of arrays into a single array
         # first check if attention is empty
         if len(attention) == 0:
             print(f"No top jets found in batch {jc_full_topsonly_dist_counter}, skipping...")
-            with open('/part-vol-3/timlegge-ParT-trained/jc_full_topsonly_dist_counter.txt', 'w') as f:
+            with open('/path/to/storage/jc_full_topsonly_dist_counter.txt', 'w') as f:
                 f.write(str(jc_full_topsonly_dist_counter+1))
             jc_full_topsonly_dist_counter += 1
             continue
@@ -1645,9 +1634,9 @@ else:
         attention_iter = attention_generator(flattened_attention, chunk_size=100000)
         # Process the data in chunks and compute histogram
         jc_full_probabilities = process_in_chunks(attention_iter, chunk_size=100000, bin_edges=bin_edges)
-        np.save(f'/part-vol-3/timlegge-ParT-trained/batched_hists/jc_full_topsonly_hist_distribution_batch_{jc_full_topsonly_dist_counter}.npy', jc_full_probabilities)
+        np.save(f'/path/to/storage/batched_hists/jc_full_topsonly_hist_distribution_batch_{jc_full_topsonly_dist_counter}.npy', jc_full_probabilities)
         print(f"Processed distribution for batch {jc_full_topsonly_dist_counter}")
-        with open('/part-vol-3/timlegge-ParT-trained/jc_full_topsonly_dist_counter.txt', 'w') as f:
+        with open('/path/to/storage/jc_full_topsonly_dist_counter.txt', 'w') as f:
             f.write(str(jc_full_topsonly_dist_counter+1))
         jc_full_topsonly_dist_counter += 1
 
@@ -1655,13 +1644,13 @@ print('JetClass_full topsonly plotting done!')
 
 # Then for qcdonly
 
-if not os.path.exists('/part-vol-3/timlegge-ParT-trained/jc_full_qcdonly_dist_counter.txt'):
+if not os.path.exists('/path/to/storage/jc_full_qcdonly_dist_counter.txt'):
     jc_full_qcdonly_dist_counter = 0
-    with open('/part-vol-3/timlegge-ParT-trained/jc_full_qcdonly_dist_counter.txt', 'w') as f:
+    with open('/path/to/storage/jc_full_qcdonly_dist_counter.txt', 'w') as f:
         f.write(str(jc_full_qcdonly_dist_counter))
 else:
     print('Distribution counter file exists, resuming from last batch')
-    with open('/part-vol-3/timlegge-ParT-trained/jc_full_qcdonly_dist_counter.txt', 'r') as f:
+    with open('/path/to/storage/jc_full_qcdonly_dist_counter.txt', 'r') as f:
         jc_full_qcdonly_dist_counter = int(f.read().strip())
 
 if jc_full_qcdonly_dist_counter >= 51:
@@ -1669,12 +1658,12 @@ if jc_full_qcdonly_dist_counter >= 51:
 else:
     while jc_full_qcdonly_dist_counter < 51:
         print(f"Processing distribution batch {jc_full_qcdonly_dist_counter}")
-        attention = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_attns/jc_full_qcdonly_attention_batch_{jc_full_qcdonly_dist_counter}.npy', allow_pickle=True)
+        attention = np.load(f'/path/to/storage/batched_attns/jc_full_qcdonly_attention_batch_{jc_full_qcdonly_dist_counter}.npy', allow_pickle=True)
         # Flatten the list of arrays into a single array
         # first check if attention is empty
         if len(attention) == 0:
             print(f"No QCD jets found in batch {jc_full_qcdonly_dist_counter}, skipping...")
-            with open('/part-vol-3/timlegge-ParT-trained/jc_full_qcdonly_dist_counter.txt', 'w') as f:
+            with open('/path/to/storage/jc_full_qcdonly_dist_counter.txt', 'w') as f:
                 f.write(str(jc_full_qcdonly_dist_counter+1))
             jc_full_qcdonly_dist_counter += 1
             continue
@@ -1683,8 +1672,8 @@ else:
         attention_iter = attention_generator(flattened_attention, chunk_size=100000)
         # Process the data in chunks and compute histogram
         jc_full_probabilities = process_in_chunks(attention_iter, chunk_size=100000, bin_edges=bin_edges)
-        np.save(f'/part-vol-3/timlegge-ParT-trained/batched_hists/jc_full_qcdonly_hist_distribution_batch_{jc_full_qcdonly_dist_counter}.npy', jc_full_probabilities)
+        np.save(f'/path/to/storage/batched_hists/jc_full_qcdonly_hist_distribution_batch_{jc_full_qcdonly_dist_counter}.npy', jc_full_probabilities)
         print(f"Processed distribution for batch {jc_full_qcdonly_dist_counter}")
-        with open('/part-vol-3/timlegge-ParT-trained/jc_full_qcdonly_dist_counter.txt', 'w') as f:
+        with open('/path/to/storage/jc_full_qcdonly_dist_counter.txt', 'w') as f:
             f.write(str(jc_full_qcdonly_dist_counter+1))
         jc_full_qcdonly_dist_counter += 1

@@ -1,3 +1,5 @@
+# This script generated the final Attn. Score/Inter. Score plot for JetClass Full
+
 from typing import List, Optional
 import timeit
 import awkward as ak
@@ -2314,89 +2316,24 @@ def get_model(model_type='qg',**kwargs):
 
     return model
 
-#qg_model = get_model(model_type='qg', return_pre_softmax=True)
-#tl_model = get_model(model_type='tl', return_pre_softmax=True)
-#hls4ml_model = get_model(model_type='hls4ml', return_pre_softmax=True)
-#jck_model = get_model(model_type='jck', return_pre_softmax=True)
-#jc_kinpid_model = get_model(model_type='jck_pid', return_pre_softmax=True)
 jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 
-#qg_hooks = Pre_Softmax_Hook(model=qg_model)
-#tl_hooks = Pre_Softmax_Hook(model=tl_model)
-#hls4ml_hooks = Pre_Softmax_Hook(model=hls4ml_model)
-#jc_kin_hooks = Pre_Softmax_Hook(model=jck_model)
-#jc_kinpid_hooks = Pre_Softmax_Hook(model=jc_kinpid_model)
 jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
 
 
 howmanyjets = 500
 
-qgtrained_modelpath = '/part-vol-3/timlegge-ParT-trained/on-qg-run2/on-qg_best_epoch_state.pt'
-tltrained_modelpath = '/part-vol-3/timlegge-ParT-trained/on-tl-run4/on-tl_best_epoch_state.pt'
-jcktrained_modelpath = '/part-vol-3/weaver-core/particle_transformer/models/ParT_kin.pt'
-jc_fulltrained_modelpath = '/part-vol-3/weaver-core/particle_transformer/models/ParT_full.pt'
+jc_fulltrained_modelpath = './models/ParT_full.pt'
 
-# QG model loading and inference
-
-# TL model loading and inference
-
-#tl_state_dict = torch.load(tltrained_modelpath, map_location=torch.device('cpu'))
-#tl_model.load_state_dict(tl_state_dict)
-#tl_pf_features = np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_features.npy')[:howmanyjets]
-#tl_pf_vectors = np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_vectors.npy')[:howmanyjets]
-#tl_pf_mask = np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_mask.npy')[:howmanyjets]
-#tl_pf_points = np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_points.npy')[:howmanyjets]
-#tl_labels = np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_labels.npy')[:howmanyjets]
-#tl_model.eval()
-#with torch.no_grad():
-#    tl_y_pred= tl_model(torch.from_numpy(tl_pf_points),torch.from_numpy(tl_pf_features),torch.from_numpy(tl_pf_vectors),torch.from_numpy(tl_pf_mask))
-#tl_attention = tl_model.get_attention_matrix()
-#tl_interaction = tl_model.get_interactionMatrix()
-
-
-print('TL done!')
-
-
-#jck_state_dict = torch.load(jcktrained_modelpath, map_location=torch.device('cpu'))
-#jck_model.load_state_dict(jck_state_dict)
-#jck_pf_features = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_pf_features.npy')
-#jck_pf_vectors  = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_pf_vectors.npy')
-#jck_pf_mask     = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_pf_mask.npy')
-#jck_pf_points   = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_pf_points.npy')
-#jck_labels      = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_kin_data/jc_kin_labels.npy')
-
-# --- Shuffle all arrays with the same permutation ---
-#n = jck_pf_points.shape[0]
 rng = np.random.default_rng()
-#perm = rng.permutation(n)
-
-#jck_pf_features = jck_pf_features[perm]
-#jck_pf_vectors  = jck_pf_vectors[perm]
-#jck_pf_mask     = jck_pf_mask[perm]
-#jck_pf_points   = jck_pf_points[perm]
-#jck_labels      = jck_labels[perm]
-
-# --- Slice after shuffling ---
-#jck_pf_features = jck_pf_features[:howmanyjets]
-#jck_pf_vectors  = jck_pf_vectors[:howmanyjets]
-#jck_pf_mask     = jck_pf_mask[:howmanyjets]
-#jck_pf_points   = jck_pf_points[:howmanyjets]
-#jck_labels      = jck_labels[:howmanyjets]
-#jck_model.eval()
-#with torch.no_grad():
-#    jck_y_pred= jck_model(torch.from_numpy(jck_pf_points),torch.from_numpy(jck_pf_features),torch.from_numpy(jck_pf_vectors),torch.from_numpy(jck_pf_mask))
-#jck_attention = jck_model.get_attention_matrix()
-#jck_interaction = jck_model.get_interactionMatrix()
-
-print('JCK done!')
 
 jc_full_state_dict = torch.load(jc_fulltrained_modelpath, map_location=torch.device('cpu'))
 jc_full_model.load_state_dict(jc_full_state_dict)
-jc_full_pf_features = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_features.npy')[:howmanyjets]
-jc_full_pf_vectors = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_vectors.npy')[:howmanyjets]
-jc_full_pf_mask = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_mask.npy')[:howmanyjets]
-jc_full_pf_points = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_pf_points.npy')[:howmanyjets]
-jc_full_labels = np.load('/part-vol-3/timlegge-ParT-trained/vol_jc_full_data/jc_full_labels.npy')[:howmanyjets]
+jc_full_pf_features = np.load('/path/to/data/storage/jc_full_pf_features.npy')[:howmanyjets]
+jc_full_pf_vectors = np.load('/path/to/data/storage/jc_full_pf_vectors.npy')[:howmanyjets]
+jc_full_pf_mask = np.load('/path/to/data/storage/jc_full_pf_mask.npy')[:howmanyjets]
+jc_full_pf_points = np.load('/path/to/data/storage/jc_full_pf_points.npy')[:howmanyjets]
+jc_full_labels = np.load('/path/to/data/storage/jc_full_labels.npy')[:howmanyjets]
 rng = np.random.default_rng(seed=42)
 
 # Make an array of indices and shuffle them
@@ -2446,13 +2383,6 @@ ratio = attn_abs[mask] / inter_abs[mask]
 num_bins = 200
 weights = np.ones_like(ratio) / ratio.size  # bars sum to 1 across bins
 
-# ---- Save ----
-#out_path = '/part-vol-3/weaver-core/parTaaron/InterpPlots/JC_AttnInter_MagnitudeRatio.pdf'
-#os.makedirs(os.path.dirname(out_path), exist_ok=True)
-#plt.savefig(out_path, bbox_inches="tight")
-#plt.show()
-
-
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -2477,13 +2407,7 @@ ax.set_xticklabels(labels, rotation=30, ha="right")
 
 ax.set_ylabel("Probability")
 ax.set_xlabel("Magnitude of Attn. Score/Inter. Score")
-#ax.set_title("JetClass Probability Distribution of Attention/Interaction Ratio", fontsize=12)
-ax.margins(y=0.05)  # small headroom for annotations
-
-# Annotate probabilities
-#for i, p in enumerate(probabilities):
-#    if p > 0:
-#        ax.text(i, p, f"{p:.3f}", ha="center", va="bottom", fontsize=8)
+ax.margins(y=0.05)
 
 plt.tight_layout()
 

@@ -57,8 +57,8 @@ def batch_convert(input_dir, output_dir, max_files=None):
 
 if __name__ == "__main__":
     # Default directories
-    default_input = "/mnt/c/Interpretability_Data/HLS4ML/LHCjet_150p_train_h5storage"
-    default_output = "/mnt/c/Interpretability_Data/HLS4ML/LHCjet_150p_train_parquet"
+    default_input = "<your_h5_files_dir>"
+    default_output = "<your_parquet_files_dir>"
     
     if len(sys.argv) >= 3:
         input_dir = sys.argv[1]
@@ -77,5 +77,4 @@ if __name__ == "__main__":
         print(f"Error: Input directory {input_dir} does not exist")
         sys.exit(1)
     
-    # For testing, limit to first 3 files
     batch_convert(input_dir, output_dir)

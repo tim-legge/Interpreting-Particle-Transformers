@@ -715,8 +715,6 @@ jc_full_data = load_data('jc_full', batch_size=500)
 
 print('Downloaded full JC dataset!')
 
-
-
 np.save('./jc_full_pf_points', jc_full_data['pf_points'])
 np.save('./jc_full_pf_features', jc_full_data['pf_features'])
 np.save('./jc_full_pf_vectors', jc_full_data['pf_vectors'])

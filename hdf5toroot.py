@@ -1,26 +1,8 @@
 #!/usr/bin/env python3
-"""
-HDF5 to ROOT Converter for HLS4ML Dataset
 
-This script converts HDF5 dataset files from the HLS4ML dataset to ROOT format
-for use in analyzing PyTorch models. It uses modern libraries (uproot, awkward)
-instead of the deprecated root_numpy.
 
-Credits and Inspiration:
-- Original concept from CYGNUS-RD/hdf2root: https://github.com/CYGNUS-RD/hdf2root/blob/master/hdf2root.py
-- Data structure analysis from ParT_Interpretability project conversion scripts
-- Uses modern Python ecosystem: uproot (Scikit-HEP), awkward-array (Scikit-HEP)
 
-Key Features:
-- Direct HDF5 to ROOT conversion without intermediate formats
-- Handles jagged particle data using awkward arrays
-- Preserves HLS4ML dataset structure and labels
-- Compatible with PyTorch model analysis workflows
-- Command-line interface with batch processing support
-
-Author: Generated for ParT_Interpretability project
-Date: August 18, 2025
-"""
+# This script converted HLS4ML h5 files to ROOT format for use in inference
 
 import os
 import sys
