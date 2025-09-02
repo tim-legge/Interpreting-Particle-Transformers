@@ -2942,9 +2942,9 @@ def jck_plot_attention_with_particles_and_ids(attention_head, jet, deta_all, dph
 
 # Example usage based on your context (assuming pf_features, pf_mask, and attention are already defined)
 
-#if hadronic_top_exists:
-#    jet = hadronic_top_jet
-#    Decay = 'TopHadronic'
+if hadronic_top_exists:
+    jet = hadronic_top_jet
+    Decay = 'TopHadronic'
 if leptonic_top_exists:
     jet = leptonic_top_jet
     Decay = 'TopLeptonic'
@@ -2969,8 +2969,8 @@ e = jck_pf_vectors[jet][3][0:num]
 
 # Get the subjets using the get_subjets function
 
-#if hadronic_top_exists:
-#    N_SUBJETS = 3
+if hadronic_top_exists:
+    N_SUBJETS = 3
 if leptonic_top_exists:
     N_SUBJETS = 2
 

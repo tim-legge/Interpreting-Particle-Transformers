@@ -1516,7 +1516,7 @@ print(f"  JetClass (full): {jc_full_data['pf_features'].shape[1]} features")
 
 # access data from local .npys 
 
-jc_fulltrained_modelpath = './models/ParT_full.pt'
+jc_fulltrained_modelpath = '/models/ParT_full.pt'
 
 print('Loading models...')
 

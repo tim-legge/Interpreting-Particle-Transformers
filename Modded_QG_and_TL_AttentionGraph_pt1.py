@@ -1231,9 +1231,7 @@ print(f"  TopLandscape (kin): {tl_data['pf_features'].shape[1]} features")
 # access data from local .npys 
 
 qgtrained_modelpath = './save_qg_model/on-qg-run2_best_epoch_state.pt'
-tltrained_modelpath = './save_tl_model/on-tl-run3_best_epoch_state.pt'
-#hls4mltrained_modelpath = '/home/tim_legge/ParT_Interpretability/save_hls4ml_model/on-hls4ml-run2_best_epoch_state.pt'
-#jcktrained_modelpath = './models/ParT_kin.pt'
+tltrained_modelpath = './save_tl_model/on-tl-run4_best_epoch_state.pt'
 
 print('Loading models...')
 

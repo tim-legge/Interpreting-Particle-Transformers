@@ -1296,7 +1296,7 @@ def load_data(dataset_type='qg', batch_size=300):
     try:
         if dataset_type == 'qg':
             # Try to load QuarkGluon data 
-            data_path = "/part-vol-3/timlegge-ParT-trained/qg_dataset/QuarkGluon/qg_test_file_0.root"
+            data_path = "/path/to/storage/qg_dataset/QuarkGluon/qg_test_file_0.root"
             if os.path.exists(data_path):
                 print(f"Loading actual QuarkGluon data from {data_path}")
                 with uproot.open(data_path)['tree'] as tree:
@@ -1311,20 +1311,13 @@ def load_data(dataset_type='qg', batch_size=300):
                         'pf_mask': data['pf_mask'][:batch_size],
                         'labels': data['label'][:batch_size]
                         }
-            data_path = "/part-vol-3/timlegge-ParT-trained/qg_dataset/QuarkGluon/qg_test_file_1.root"
+            data_path = "/path/to/storage/qg_dataset/QuarkGluon/qg_test_file_1.root"
             if os.path.exists(data_path):
                 print(f"Loading actual QuarkGluon data from {data_path}")
                 with uproot.open(data_path)['tree'] as tree:
                     print('This part is working - QG')
                     data_1 = build_features_and_labels_qg(tree)
 
-                    #print(f'point shapes before concat: {data["pf_points"].shape}, {data_1["pf_points"].shape}')
-                    #print(f'feature shapes before concat: {data["pf_features"].shape}, {data_1["pf_features"].shape}')
-                    #print(f'vector shapes before concat: {data["pf_vectors"].shape}, {data_1["pf_vectors"].shape}')
-                    #print(f'mask shapes before concat: {data["pf_mask"].shape}, {data_1["pf_mask"].shape}')
-                    #print(f'label shapes before concat: {data["labels"].shape}, {data_1["labels"].shape}')
-                    # Truncate to batch_size            
-                    #print(f"Truncating from {data['pf_points'].shape[0]} jets to {batch_size} jets")
                     data['pf_points'] = np.concatenate((data['pf_points'][:],data_1['pf_points'][:]))
                     data['pf_features'] = np.concatenate((data['pf_features'][:],data_1['pf_features'][:]))
                     data['pf_vectors'] = np.concatenate((data['pf_vectors'][:],data_1['pf_vectors'][:]))
@@ -1335,7 +1328,7 @@ def load_data(dataset_type='qg', batch_size=300):
 
         elif dataset_type == 'tl':
             # Try to load TopLandscape data
-            data_path = "/part-vol-3/timlegge-tl_dataset/TopLandscape/tl_test_file.root"
+            data_path = "/path/to/storage/tl_dataset/TopLandscape/tl_test_file.root"
             if os.path.exists(data_path):
                 print(f"Loading actual TopLandscape data from {data_path}")
                 with uproot.open(data_path)['tree'] as tree:
@@ -1359,7 +1352,7 @@ def load_data(dataset_type='qg', batch_size=300):
 
 # Create sample data for both models
 
-if not os.path.exists('/part-vol-3/timlegge-ParT-trained/vol_tl_data/'):
+if not os.path.exists('/path/to/storage/vol_tl_data/'):
     print("Loading data for testing...")
     qg_data = load_data('qg', batch_size=None)
     tl_data = load_data('tl', batch_size=None)
@@ -1374,17 +1367,17 @@ if not os.path.exists('/part-vol-3/timlegge-ParT-trained/vol_tl_data/'):
 
 else:
     qg_data = {
-        'pf_points': np.load('/part-vol-3/timlegge-ParT-trained/vol_qg_data/qg_pf_points.npy'),
-        'pf_features': np.load('/part-vol-3/timlegge-ParT-trained/vol_qg_data/qg_pf_features.npy'),
-        'pf_vectors': np.load('/part-vol-3/timlegge-ParT-trained/vol_qg_data/qg_pf_vectors.npy'),
-        'pf_mask': np.load('/part-vol-3/timlegge-ParT-trained/vol_qg_data/qg_pf_mask.npy'),
-        'labels': np.load('/part-vol-3/timlegge-ParT-trained/vol_qg_data/qg_labels.npy')}
+        'pf_points': np.load('/path/to/storage/vol_qg_data/qg_pf_points.npy'),
+        'pf_features': np.load('/path/to/storage/vol_qg_data/qg_pf_features.npy'),
+        'pf_vectors': np.load('/path/to/storage/vol_qg_data/qg_pf_vectors.npy'),
+        'pf_mask': np.load('/path/to/storage/vol_qg_data/qg_pf_mask.npy'),
+        'labels': np.load('/path/to/storage/vol_qg_data/qg_labels.npy')}
     tl_data = {
-        'pf_points': np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_points.npy'),
-        'pf_features': np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_features.npy'),
-        'pf_vectors': np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_vectors.npy'),
-        'pf_mask': np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_mask.npy'),
-        'labels': np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_labels.npy')}
+        'pf_points': np.load('/path/to/storage/vol_tl_data/tl_pf_points.npy'),
+        'pf_features': np.load('/path/to/storage/vol_tl_data/tl_pf_features.npy'),
+        'pf_vectors': np.load('/path/to/storage/vol_tl_data/tl_pf_vectors.npy'),
+        'pf_mask': np.load('/path/to/storage/vol_tl_data/tl_pf_mask.npy'),
+        'labels': np.load('/path/to/storage/vol_tl_data/tl_labels.npy')}
 
 print(f"Data loaded (and saved to .npy if it was not there already):")
 print(f"Feature dimensions:")
@@ -1393,10 +1386,8 @@ print(f"  TopLandscape (kin): {tl_data['pf_features'].shape[1]} features")
 
 # access data from local .npys 
 
-qgtrained_modelpath = './save_qg_model/on-qg-run2_best_epoch_state.pt'
-tltrained_modelpath = './save_tl_model/on-tl-run4_best_epoch_state.pt'
-#hls4mltrained_modelpath = '/home/tim_legge/ParT_Interpretability/save_hls4ml_model/on-hls4ml-run2_best_epoch_state.pt'
-#jcktrained_modelpath = './models/ParT_kin.pt'
+qgtrained_modelpath = '../models/on-qg-run2_best_epoch_state.pt'
+tltrained_modelpath = '../models/on-tl-run4_best_epoch_state.pt'
 
 print('Loading models...')
 
@@ -1412,13 +1403,13 @@ tl_state_dict = torch.load(tltrained_modelpath, map_location=torch.device('cpu')
 
 batch_to_load = 2000
 
-if not os.path.exists('/part-vol-3/timlegge-ParT-trained/tl_topsonly_counter.txt'):
+if not os.path.exists('/path/to/storage/tl_topsonly_counter.txt'):
     counter = 0
-    with open('/part-vol-3/timlegge-ParT-trained/tl_topsonly_counter.txt', 'w') as f:
+    with open('/path/to/storage/tl_topsonly_counter.txt', 'w') as f:
         f.write(str(counter))
 else:
     print('Counter file exists, resuming from last batch')
-    with open('/part-vol-3/timlegge-ParT-trained/tl_topsonly_counter.txt', 'r') as f:
+    with open('/path/to/storage/tl_topsonly_counter.txt', 'r') as f:
         counter = int(f.read().strip())
 
 if counter >= 51:
@@ -1445,14 +1436,14 @@ else:
                 tl_qcdonly_attention.append([layer[jet] for layer in tl_attention])
             else:
                 continue
-        np.save(f'/part-vol-3/timlegge-ParT-trained/batched_attns/tl_topsonly_attention_batch_{counter}.npy', tl_topsonly_attention)
+        np.save(f'/path/to/storage/batched_attns/tl_topsonly_attention_batch_{counter}.npy', tl_topsonly_attention)
         print(f'Saved {len(tl_topsonly_attention)} top jets attention for batch {counter}')
-        np.save(f'/part-vol-3/timlegge-ParT-trained/batched_attns/tl_qcdonly_attention_batch_{counter}.npy', tl_qcdonly_attention)
+        np.save(f'/path/to/storage/batched_attns/tl_qcdonly_attention_batch_{counter}.npy', tl_qcdonly_attention)
         print(f'Saved {len(tl_qcdonly_attention)} qcd jets attention for batch {counter}')
-        np.save(f'/part-vol-3/timlegge-ParT-trained/batched_attns/tl_run4_attention_batch_{counter}.npy', tl_attention)
+        np.save(f'/path/to/storage/batched_attns/tl_run4_attention_batch_{counter}.npy', tl_attention)
         print(f'Saved full attention for batch {counter}')
         print(f"Processed batch {counter} - inferred from jets {counter*batch_to_load} to {(counter+1)*batch_to_load}")
-        with open('/part-vol-3/timlegge-ParT-trained/tl_topsonly_counter.txt', 'w') as f:
+        with open('/path/to/storage/tl_topsonly_counter.txt', 'w') as f:
             f.write(str(counter+1))
         counter += 1
 
@@ -1488,13 +1479,13 @@ def attention_generator(attention, chunk_size):
 # Attention distributions - run with similar batching algorithm as above
 # One at a time - first for topsonly
 
-if not os.path.exists('/part-vol-3/timlegge-ParT-trained/tl_topsonly_dist_counter.txt'):
+if not os.path.exists('/path/to/storage/tl_topsonly_dist_counter.txt'):
     tl_topsonly_dist_counter = 0
-    with open('/part-vol-3/timlegge-ParT-trained/tl_topsonly_dist_counter.txt', 'w') as f:
+    with open('/path/to/storage/tl_topsonly_dist_counter.txt', 'w') as f:
         f.write(str(tl_topsonly_dist_counter))
 else:
     print('Distribution counter file exists, resuming from last batch')
-    with open('/part-vol-3/timlegge-ParT-trained/tl_topsonly_dist_counter.txt', 'r') as f:
+    with open('/path/to/storage/tl_topsonly_dist_counter.txt', 'r') as f:
         tl_topsonly_dist_counter = int(f.read().strip())
 
 if tl_topsonly_dist_counter >= 51:
@@ -1502,28 +1493,28 @@ if tl_topsonly_dist_counter >= 51:
 else:
     while tl_topsonly_dist_counter < 51:
         print(f"Processing distribution batch {tl_topsonly_dist_counter}")
-        attention = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_attns/tl_topsonly_attention_batch_{tl_topsonly_dist_counter}.npy', allow_pickle=True)
+        attention = np.load(f'/path/to/storage/batched_attns/tl_topsonly_attention_batch_{tl_topsonly_dist_counter}.npy', allow_pickle=True)
         # Flatten the list of arrays into a single array
         flattened_attention = np.stack(attention).flatten()
         # Create a generator to yield chunks of data
         attention_iter = attention_generator(flattened_attention, chunk_size=100000)
         # Process the data in chunks and compute histogram
         tl_probabilities = process_in_chunks(attention_iter, chunk_size=100000, bin_edges=bin_edges)
-        np.save(f'/part-vol-3/timlegge-ParT-trained/batched_hists/tl_topsonly_hist_distribution_batch_{tl_topsonly_dist_counter}.npy', tl_probabilities)
+        np.save(f'/path/to/storage/batched_hists/tl_topsonly_hist_distribution_batch_{tl_topsonly_dist_counter}.npy', tl_probabilities)
         print(f"Processed distribution for batch {tl_topsonly_dist_counter}")
-        with open('/part-vol-3/timlegge-ParT-trained/tl_topsonly_dist_counter.txt', 'w') as f:
+        with open('/path/to/storage/tl_topsonly_dist_counter.txt', 'w') as f:
             f.write(str(tl_topsonly_dist_counter+1))
         tl_topsonly_dist_counter += 1
 
 # Then for qcdonly
 
-if not os.path.exists('/part-vol-3/timlegge-ParT-trained/tl_qcdonly_dist_counter.txt'):
+if not os.path.exists('/path/to/storage/tl_qcdonly_dist_counter.txt'):
     tl_qcdonly_dist_counter = 0
-    with open('/part-vol-3/timlegge-ParT-trained/tl_qcdonly_dist_counter.txt', 'w') as f:
+    with open('/path/to/storage/tl_qcdonly_dist_counter.txt', 'w') as f:
         f.write(str(tl_qcdonly_dist_counter))
 else:
     print('Distribution counter file exists, resuming from last batch')
-    with open('/part-vol-3/timlegge-ParT-trained/tl_qcdonly_dist_counter.txt', 'r') as f:
+    with open('/path/to/storage/tl_qcdonly_dist_counter.txt', 'r') as f:
         tl_qcdonly_dist_counter = int(f.read().strip())
 
 if tl_qcdonly_dist_counter >= 51:
@@ -1531,28 +1522,28 @@ if tl_qcdonly_dist_counter >= 51:
 else:
     while tl_qcdonly_dist_counter < 51:
         print(f"Processing distribution batch {tl_qcdonly_dist_counter}")
-        attention = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_attns/tl_qcdonly_attention_batch_{tl_qcdonly_dist_counter}.npy', allow_pickle=True)
+        attention = np.load(f'/path/to/storage/batched_attns/tl_qcdonly_attention_batch_{tl_qcdonly_dist_counter}.npy', allow_pickle=True)
         # Flatten the list of arrays into a single array
         flattened_attention = np.stack(attention).flatten()
         # Create a generator to yield chunks of data
         attention_iter = attention_generator(flattened_attention, chunk_size=100000)
         # Process the data in chunks and compute histogram
         tl_probabilities = process_in_chunks(attention_iter, chunk_size=100000, bin_edges=bin_edges)
-        np.save(f'/part-vol-3/timlegge-ParT-trained/batched_hists/tl_qcdonly_hist_distribution_batch_{tl_qcdonly_dist_counter}.npy', tl_probabilities)
+        np.save(f'/path/to/storage/batched_hists/tl_qcdonly_hist_distribution_batch_{tl_qcdonly_dist_counter}.npy', tl_probabilities)
         print(f"Processed distribution for batch {tl_qcdonly_dist_counter}")
-        with open('/part-vol-3/timlegge-ParT-trained/tl_qcdonly_dist_counter.txt', 'w') as f:
+        with open('/path/to/storage/tl_qcdonly_dist_counter.txt', 'w') as f:
             f.write(str(tl_qcdonly_dist_counter+1))
         tl_qcdonly_dist_counter += 1
 
 # Finally for full run4
 
-if not os.path.exists('/part-vol-3/timlegge-ParT-trained/tl_run4_dist_counter.txt'):
+if not os.path.exists('/path/to/storage/tl_run4_dist_counter.txt'):
     tl_run4_dist_counter = 0
-    with open('/part-vol-3/timlegge-ParT-trained/tl_run4_dist_counter.txt', 'w') as f:
+    with open('/path/to/storage/tl_run4_dist_counter.txt', 'w') as f:
         f.write(str(tl_run4_dist_counter))
 else:
     print('Distribution counter file exists, resuming from last batch')
-    with open('/part-vol-3/timlegge-ParT-trained/tl_run4_dist_counter.txt', 'r') as f:
+    with open('/path/to/storage/tl_run4_dist_counter.txt', 'r') as f:
         tl_run4_dist_counter = int(f.read().strip())
 
 if tl_run4_dist_counter >= 51:
@@ -1560,16 +1551,16 @@ if tl_run4_dist_counter >= 51:
 else:
     while tl_run4_dist_counter < 51:
         print(f"Processing distribution batch {tl_run4_dist_counter}")
-        attention = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_attns/tl_run4_attention_batch_{tl_run4_dist_counter}.npy', allow_pickle=True)
+        attention = np.load(f'/path/to/storage/batched_attns/tl_run4_attention_batch_{tl_run4_dist_counter}.npy', allow_pickle=True)
         # Flatten the list of arrays into a single array
         flattened_attention = np.stack(attention).flatten()
         # Create a generator to yield chunks of data
         attention_iter = attention_generator(flattened_attention, chunk_size=100000)
         # Process the data in chunks and compute histogram
         tl_probabilities = process_in_chunks(attention_iter, chunk_size=100000, bin_edges=bin_edges)
-        np.save(f'/part-vol-3/timlegge-ParT-trained/batched_hists/tl_run4_hist_distribution_batch_{tl_run4_dist_counter}.npy', tl_probabilities)
+        np.save(f'/path/to/storage/batched_hists/tl_run4_hist_distribution_batch_{tl_run4_dist_counter}.npy', tl_probabilities)
         print(f"Processed distribution for batch {tl_run4_dist_counter}")
-        with open('/part-vol-3/timlegge-ParT-trained/tl_run4_dist_counter.txt', 'w') as f:
+        with open('/path/to/storage/tl_run4_dist_counter.txt', 'w') as f:
             f.write(str(tl_run4_dist_counter+1))
         tl_run4_dist_counter += 1
 

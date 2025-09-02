@@ -1520,8 +1520,8 @@ print(f"  JetClass (kin): {jc_kin_data['pf_features'].shape[1]} features")
 
 # access data from local .npys 
 
-jc_kintrained_modelpath = './models/ParT_kin.pt'
-jc_fulltrained_modelpath = './models/ParT_full.pt'
+jc_kintrained_modelpath = '../models/ParT_kin.pt'
+jc_fulltrained_modelpath = '../models/ParT_full.pt'
 
 
 print('Loading models...')
