@@ -1,0 +1,14 @@
+numpy
+awkward
+uproot
+torch
+vector
+tqdm
+matplotlib
+scipy
+pickle
+# Specific to HEP:
+weaver-core>=0.4
+fastjet
+hepconvert
+mplhep
