@@ -705,13 +705,13 @@ jc_kin_top_hadronic = load_data('jck', start_index=60000, batch_size=100)
 jc_kin_top_leptonic = load_data('jck', start_index=50000, batch_size=100)
 
 # Check for the correct labels in loaded data
-print(np.argmax(jc_full_top_hadronic['labels'], axis=1)[:20])
+print(jc_full_top_hadronic['labels'][:20])
 assert 8 in np.argmax(jc_full_top_hadronic['labels'], axis=1).tolist(), "Label 8 (hadronic top) not found in jc_full_top_hadronic"
-print(np.argmax(jc_full_top_leptonic['labels'], axis=1)[:20])
+print(jc_full_top_leptonic['labels'][:20])
 assert 9 in np.argmax(jc_full_top_leptonic['labels'], axis=1).tolist(), "Label 9 (leptonic top) not found in jc_full_top_leptonic"
-print(np.argmax(jc_kin_top_hadronic['labels'], axis=1)[:20])
+print(jc_kin_top_hadronic['labels'][:20])
 assert 8 in np.argmax(jc_kin_top_hadronic['labels'], axis=1).tolist(), "Label 8 (hadronic top) not found in jc_kin_top_hadronic"
-print(np.argmax(jc_kin_top_leptonic['labels'], axis=1)[:20])
+print(jc_kin_top_leptonic['labels'][:20])
 assert 9 in np.argmax(jc_kin_top_leptonic['labels'], axis=1).tolist(), "Label 9 (leptonic top) not found in jc_kin_top_leptonic"
 
 #print(f"TL sample data shapes:")
