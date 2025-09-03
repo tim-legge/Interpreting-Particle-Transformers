@@ -591,11 +591,11 @@ def load_data(dataset_type='qg', start_index=None, batch_size=300):
                     if data['pf_points'].shape[0] > batch_size:
                         print(f"Truncating from {data['pf_points'].shape[0]} jets to {batch_size} jets")
                         data = {
-                            'pf_points': data['pf_points'][start_index:batch_size],
-                            'pf_features': data['pf_features'][start_index:batch_size], 
-                            'pf_vectors': data['pf_vectors'][start_index:batch_size],
-                            'pf_mask': data['pf_mask'][start_index:batch_size],
-                            'labels': data['label'][start_index:batch_size]
+                            'pf_points': data['pf_points'][start_index:start_index+batch_size],
+                            'pf_features': data['pf_features'][start_index:start_index+batch_size], 
+                            'pf_vectors': data['pf_vectors'][start_index:start_index+batch_size],
+                            'pf_mask': data['pf_mask'][start_index:start_index+batch_size],
+                            'labels': data['label'][start_index:start_index+batch_size]
                         }
                     return data
 
@@ -611,11 +611,11 @@ def load_data(dataset_type='qg', start_index=None, batch_size=300):
                     #if data['pf_points'].shape[0] > batch_size:
                     #    print(f"Truncating from {data['pf_points'].shape[0]} jets to {batch_size} jets")
                     data = {
-                            'pf_points': data['pf_points'][start_index:batch_size],
-                            'pf_features': data['pf_features'][start_index:batch_size],
-                            'pf_vectors': data['pf_vectors'][start_index:batch_size],
-                            'pf_mask': data['pf_mask'][start_index:batch_size],
-                            'labels': data['label'][start_index:batch_size]
+                            'pf_points': data['pf_points'][start_index:start_index+batch_size],
+                            'pf_features': data['pf_features'][start_index:start_index+batch_size],
+                            'pf_vectors': data['pf_vectors'][start_index:start_index+batch_size],
+                            'pf_mask': data['pf_mask'][start_index:start_index+batch_size],
+                            'labels': data['label'][start_index:start_index+batch_size]
                         }
                     return data
         elif dataset_type == 'hls4ml':
@@ -629,11 +629,11 @@ def load_data(dataset_type='qg', start_index=None, batch_size=300):
                     if data['pf_points'].shape[0] > batch_size:
                         print(f"Truncating from {data['pf_points'].shape[0]} jets to {batch_size} jets")
                         data = {
-                            'pf_points': data['pf_points'][start_index:batch_size],
-                            'pf_features': data['pf_features'][start_index:batch_size],
-                            'pf_vectors': data['pf_vectors'][start_index:batch_size],
-                            'pf_mask': data['pf_mask'][start_index:batch_size],
-                            'labels': data['label'][start_index:batch_size]
+                            'pf_points': data['pf_points'][start_index:start_index+batch_size],
+                            'pf_features': data['pf_features'][start_index:start_index+batch_size],
+                            'pf_vectors': data['pf_vectors'][start_index:start_index+batch_size],
+                            'pf_mask': data['pf_mask'][start_index:start_index+batch_size],
+                            'labels': data['label'][start_index:start_index+batch_size]
                         }
                     return data
         elif dataset_type == 'jck':
@@ -648,11 +648,11 @@ def load_data(dataset_type='qg', start_index=None, batch_size=300):
                     if data['pf_points'].shape[0] > batch_size:
                         print(f"Truncating from {data['pf_points'].shape[0]} jets to {batch_size} jets")
                         data = {
-                            'pf_points': data['pf_points'][start_index:batch_size],
-                            'pf_features': data['pf_features'][start_index:batch_size],
-                            'pf_vectors': data['pf_vectors'][start_index:batch_size],
-                            'pf_mask': data['pf_mask'][start_index:batch_size],
-                            'labels': data['label'][start_index:batch_size]
+                            'pf_points': data['pf_points'][start_index:start_index+batch_size],
+                            'pf_features': data['pf_features'][start_index:start_index+batch_size],
+                            'pf_vectors': data['pf_vectors'][start_index:start_index+batch_size],
+                            'pf_mask': data['pf_mask'][start_index:start_index+batch_size],
+                            'labels': data['label'][start_index:start_index+batch_size]
                         }
                     return data
 
@@ -668,11 +668,11 @@ def load_data(dataset_type='qg', start_index=None, batch_size=300):
                     if data['pf_points'].shape[0] > batch_size:
                         print(f"Truncating from {data['pf_points'].shape[0]} jets to {batch_size} jets")
                         data = {
-                            'pf_points': data['pf_points'][start_index:batch_size],
-                            'pf_features': data['pf_features'][start_index:batch_size],
-                            'pf_vectors': data['pf_vectors'][start_index:batch_size],
-                            'pf_mask': data['pf_mask'][start_index:batch_size],
-                            'labels': data['label'][start_index:batch_size]
+                            'pf_points': data['pf_points'][start_index:start_index+batch_size],
+                            'pf_features': data['pf_features'][start_index:start_index+batch_size],
+                            'pf_vectors': data['pf_vectors'][start_index:start_index+batch_size],
+                            'pf_mask': data['pf_mask'][start_index:start_index+batch_size],
+                            'labels': data['label'][start_index:start_index+batch_size]
                         }
                     return data
         elif dataset_type == 'jc_full':
@@ -687,11 +687,11 @@ def load_data(dataset_type='qg', start_index=None, batch_size=300):
                     if data['pf_points'].shape[0] > batch_size:
                         print(f"Truncating from {data['pf_points'].shape[0]} jets to {batch_size} jets")
                         data = {
-                            'pf_points': data['pf_points'][start_index:batch_size],
-                            'pf_features': data['pf_features'][start_index:batch_size],
-                            'pf_vectors': data['pf_vectors'][start_index:batch_size],
-                            'pf_mask': data['pf_mask'][start_index:batch_size],
-                            'labels': data['label'][start_index:batch_size]
+                            'pf_points': data['pf_points'][start_index:start_index+batch_size],
+                            'pf_features': data['pf_features'][start_index:start_index+batch_size],
+                            'pf_vectors': data['pf_vectors'][start_index:start_index+batch_size],
+                            'pf_mask': data['pf_mask'][start_index:start_index+batch_size],
+                            'labels': data['label'][start_index:start_index+batch_size]
                         }
                     return data
     except Exception as e:
