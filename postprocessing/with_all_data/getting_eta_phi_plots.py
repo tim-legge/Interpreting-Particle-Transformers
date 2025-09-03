@@ -2678,7 +2678,7 @@ def plot_attention_with_particles(attention_head, jet, deta_all, dphi_all, pt_al
 
     # Save the figure instead of showing it
     print(f"Saving figure to {output_filename}...")
-    plt.savefig(output_filename, bbox_inches='tight')
+    #plt.savefig(output_filename, bbox_inches='tight')
     print("Figure saved.")
 
 def jck_plot_attention_with_particles(attention_head, jet, deta_all, dphi_all, pt_all, subjets_all, 
@@ -2937,7 +2937,7 @@ def jck_plot_attention_with_particles_and_ids(attention_head, jet, deta_all, dph
 
     # Save the figure instead of showing it
     print(f"Saving figure to {output_filename}...")
-    plt.savefig(output_filename, bbox_inches='tight')
+    #plt.savefig(output_filename, bbox_inches='tight')
     print("Figure saved.")
 
 # Example usage based on your context (assuming pf_features, pf_mask, and attention are already defined)
@@ -3001,10 +3001,10 @@ subjets_all = np.array(subjets_all)
 
 # softmax the pre-softmax attention matrix
 
-if not os.path.exists('./JetClasskin_attn_plots'):
-    os.makedirs('./JetClasskin_attn_plots')
-if not os.path.exists('./JetClassfull_attn_plots'):
-    os.makedirs('./JetClassfull_attn_plots')
+#if not os.path.exists('./JetClasskin_attn_plots'):
+#    os.makedirs('./JetClasskin_attn_plots')
+#if not os.path.exists('./JetClassfull_attn_plots'):
+#    os.makedirs('./JetClassfull_attn_plots')
 
 layer_number = 7  # Choose the layer
 
@@ -3028,8 +3028,8 @@ e = jc_full_pf_vectors[jet][3][0:num]
 
 # Get the subjets using the get_subjets function
 
-#if hadronic_top_exists:
-#    N_SUBJETS = 3
+if hadronic_top_exists:
+    N_SUBJETS = 3
 if leptonic_top_exists:
     N_SUBJETS = 2
 

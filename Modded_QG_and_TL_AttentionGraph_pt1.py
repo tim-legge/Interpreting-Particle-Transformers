@@ -1133,7 +1133,7 @@ def load_data(dataset_type='qg', batch_size=300):
     try:
         if dataset_type == 'qg':
             # Try to load QuarkGluon data 
-            data_path = "/part-vol-3/timlegge-ParT-trained/qg_dataset/QuarkGluon/qg_test_file_0.root"
+            data_path = "/path/to/storage/qg_dataset/QuarkGluon/qg_test_file_0.root"
             if os.path.exists(data_path):
                 print(f"Loading actual QuarkGluon data from {data_path}")
                 with uproot.open(data_path)['tree'] as tree:
@@ -1148,7 +1148,7 @@ def load_data(dataset_type='qg', batch_size=300):
                         'pf_mask': data['pf_mask'][:batch_size],
                         'labels': data['label'][:batch_size]
                         }
-            data_path = "/part-vol-3/timlegge-ParT-trained/qg_dataset/QuarkGluon/qg_test_file_1.root"
+            data_path = "/path/to/storage/qg_dataset/QuarkGluon/qg_test_file_1.root"
             if os.path.exists(data_path):
                 print(f"Loading actual QuarkGluon data from {data_path}")
                 with uproot.open(data_path)['tree'] as tree:
@@ -1196,7 +1196,7 @@ def load_data(dataset_type='qg', batch_size=300):
 
 # Create sample data for both models
 
-if not os.path.exists('/part-vol-3/timlegge-ParT-trained/vol_tl_data/'):
+if not os.path.exists('/path/to/storage/vol_tl_data/'):
     print("Loading data for testing...")
     qg_data = load_data('qg', batch_size=None)
     tl_data = load_data('tl', batch_size=None)
@@ -1211,17 +1211,17 @@ if not os.path.exists('/part-vol-3/timlegge-ParT-trained/vol_tl_data/'):
 
 else:
     qg_data = {
-        'pf_points': np.load('/part-vol-3/timlegge-ParT-trained/vol_qg_data/qg_pf_points.npy'),
-        'pf_features': np.load('/part-vol-3/timlegge-ParT-trained/vol_qg_data/qg_pf_features.npy'),
-        'pf_vectors': np.load('/part-vol-3/timlegge-ParT-trained/vol_qg_data/qg_pf_vectors.npy'),
-        'pf_mask': np.load('/part-vol-3/timlegge-ParT-trained/vol_qg_data/qg_pf_mask.npy'),
-        'labels': np.load('/part-vol-3/timlegge-ParT-trained/vol_qg_data/qg_labels.npy')}
+        'pf_points': np.load('/path/to/storage/vol_qg_data/qg_pf_points.npy'),
+        'pf_features': np.load('/path/to/storage/vol_qg_data/qg_pf_features.npy'),
+        'pf_vectors': np.load('/path/to/storage/vol_qg_data/qg_pf_vectors.npy'),
+        'pf_mask': np.load('/path/to/storage/vol_qg_data/qg_pf_mask.npy'),
+        'labels': np.load('/path/to/storage/vol_qg_data/qg_labels.npy')}
     tl_data = {
-        'pf_points': np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_points.npy'),
-        'pf_features': np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_features.npy'),
-        'pf_vectors': np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_vectors.npy'),
-        'pf_mask': np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_pf_mask.npy'),
-        'labels': np.load('/part-vol-3/timlegge-ParT-trained/vol_tl_data/tl_labels.npy')}
+        'pf_points': np.load('/path/to/storage/vol_tl_data/tl_pf_points.npy'),
+        'pf_features': np.load('/path/to/storage/vol_tl_data/tl_pf_features.npy'),
+        'pf_vectors': np.load('/path/to/storage/vol_tl_data/tl_pf_vectors.npy'),
+        'pf_mask': np.load('/path/to/storage/vol_tl_data/tl_pf_mask.npy'),
+        'labels': np.load('/path/to/storage/vol_tl_data/tl_labels.npy')}
 
 print(f"Data loaded (and saved to .npy if it was not there already):")
 print(f"Feature dimensions:")
@@ -1247,13 +1247,13 @@ qg_state_dict = torch.load(qgtrained_modelpath, map_location=torch.device('cpu')
 
 batch_to_load = 2000
 
-if not os.path.exists('/part-vol-3/timlegge-ParT-trained/counter.txt'):
+if not os.path.exists('/path/to/storage/counter.txt'):
     counter = 0
-    with open('/part-vol-3/timlegge-ParT-trained/counter.txt', 'w') as f:
+    with open('/path/to/storage/counter.txt', 'w') as f:
         f.write(str(counter))
 else:
     print('Counter file exists, resuming from last batch')
-    with open('/part-vol-3/timlegge-ParT-trained/counter.txt', 'r') as f:
+    with open('/path/to/storage/counter.txt', 'r') as f:
         counter = int(f.read().strip())
 if counter >= 51:
     print('Batches already processed, moving on...')
@@ -1270,10 +1270,10 @@ else:
         with torch.no_grad():
             qg_y_pred = qg_model(torch.from_numpy(qg_pf_points),torch.from_numpy(qg_pf_features),torch.from_numpy(qg_pf_vectors),torch.from_numpy(qg_pf_mask))
         qg_attention = [tensor.numpy() for tensor in qg_model.get_attention_matrix()]
-        np.save(f'/part-vol-3/timlegge-ParT-trained/batched_attns/qg_attention_batch_{counter}.npy', qg_attention)
+        np.save(f'/path/to/storage/batched_attns/qg_attention_batch_{counter}.npy', qg_attention)
         print(f"Processed batch {counter} - inferred from jets {counter*batch_to_load} to {(counter+1)*batch_to_load}")
         counter += 1
-        with open('/part-vol-3/timlegge-ParT-trained/counter.txt', 'w') as f:
+        with open('/path/to/storage/counter.txt', 'w') as f:
             f.write(str(counter))
 
 print('QG done!')
@@ -1307,13 +1307,13 @@ def attention_generator(attention, chunk_size):
 
 # Attention distributions - run with similar batching algorithm as above
 
-if not os.path.exists('/part-vol-3/timlegge-ParT-trained/qg_dist_counter.txt'):
+if not os.path.exists('/path/to/storage/qg_dist_counter.txt'):
     qg_dist_counter = 0
-    with open('/part-vol-3/timlegge-ParT-trained/qg_dist_counter.txt', 'w') as f:
+    with open('/path/to/storage/qg_dist_counter.txt', 'w') as f:
         f.write(str(qg_dist_counter))
 else:
     print('Distribution counter file exists, resuming from last batch')
-    with open('/part-vol-3/timlegge-ParT-trained/qg_dist_counter.txt', 'r') as f:
+    with open('/path/to/storage/qg_dist_counter.txt', 'r') as f:
         qg_dist_counter = int(f.read().strip())
 
 if qg_dist_counter >= 50:
@@ -1321,15 +1321,15 @@ if qg_dist_counter >= 50:
 else:
     while qg_dist_counter < 50:
         print(f"Processing distribution batch {qg_dist_counter}")
-        attention = np.load(f'/part-vol-3/timlegge-ParT-trained/batched_attns/qg_attention_batch_{qg_dist_counter}.npy', allow_pickle=True)
+        attention = np.load(f'/path/to/storage/batched_attns/qg_attention_batch_{qg_dist_counter}.npy', allow_pickle=True)
         # Flatten the list of arrays into a single array
         flattened_attention = np.stack(attention).flatten()
         # Create a generator to yield chunks of data
         attention_iter = attention_generator(flattened_attention, chunk_size=100000)
         # Process the data in chunks and compute histogram
         qg_probabilities = process_in_chunks(attention_iter, chunk_size=100000, bin_edges=bin_edges)
-        np.save(f'/part-vol-3/timlegge-ParT-trained/batched_hists/qg_attention_distribution_batch_{qg_dist_counter}.npy', qg_probabilities)
+        np.save(f'/path/to/storage/batched_hists/qg_attention_distribution_batch_{qg_dist_counter}.npy', qg_probabilities)
         print(f"Processed distribution for batch {qg_dist_counter}")
-        with open('/part-vol-3/timlegge-ParT-trained/qg_dist_counter.txt', 'w') as f:
+        with open('/path/to/storage/qg_dist_counter.txt', 'w') as f:
             f.write(str(qg_dist_counter+1))
         qg_dist_counter += 1
