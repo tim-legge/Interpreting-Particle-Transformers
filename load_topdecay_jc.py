@@ -638,7 +638,7 @@ def load_data(dataset_type='qg', start_index=None, batch_size=300):
                     return data
         elif dataset_type == 'jck':
             # Try to load JetClass data
-            data_path = '/path/to/storage/JetClass_example_100k.root'
+            data_path = '/part-vol-3/timlegge-ParT-trained/JetClass_example_100k.root'
             if os.path.exists(data_path):
                 print(f"Loading actual JetClass data from {data_path}")
                 with uproot.open(data_path)['tree'] as tree:
@@ -705,13 +705,13 @@ jc_kin_top_hadronic = load_data('jck', start_index=60000, batch_size=100)
 jc_kin_top_leptonic = load_data('jck', start_index=50000, batch_size=100)
 
 # Check for the correct labels in loaded data
-print(jc_full_top_hadronic['labels'][:20])
+print(jc_full_top_hadronic['labels'][:10])
 assert 8 in np.argmax(jc_full_top_hadronic['labels'], axis=1).tolist(), "Label 8 (hadronic top) not found in jc_full_top_hadronic"
-print(jc_full_top_leptonic['labels'][:20])
+print(jc_full_top_leptonic['labels'][:10])
 assert 9 in np.argmax(jc_full_top_leptonic['labels'], axis=1).tolist(), "Label 9 (leptonic top) not found in jc_full_top_leptonic"
-print(jc_kin_top_hadronic['labels'][:20])
+print(jc_kin_top_hadronic['labels'][:10])
 assert 8 in np.argmax(jc_kin_top_hadronic['labels'], axis=1).tolist(), "Label 8 (hadronic top) not found in jc_kin_top_hadronic"
-print(jc_kin_top_leptonic['labels'][:20])
+print(jc_kin_top_leptonic['labels'][:10])
 assert 9 in np.argmax(jc_kin_top_leptonic['labels'], axis=1).tolist(), "Label 9 (leptonic top) not found in jc_kin_top_leptonic"
 
 #print(f"TL sample data shapes:")
