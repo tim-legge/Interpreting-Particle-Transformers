@@ -698,7 +698,7 @@ def load_data(dataset_type='qg', start_index=None, batch_size=300):
         print(f"Could not load actual data: {e}")
         raise e
 
-
+# Load small sets
 jc_full_top_hadronic = load_data('jc_full', start_index=60000, batch_size=100)
 jc_full_top_leptonic = load_data('jc_full', start_index=50000, batch_size=100)
 jc_kin_top_hadronic = load_data('jck', start_index=60000, batch_size=100)
