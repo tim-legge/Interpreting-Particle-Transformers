@@ -1352,7 +1352,10 @@ def load_data(dataset_type='qg', batch_size=300):
 
 # Create sample data for both models
 
-if not os.path.exists('/path/to/storage/vol_tl_data/'):
+if not os.path.exists('/path/to/storage/tl_data/') or not os.path.exists('/path/to/storage/qg_data/'):
+    os.makedirs('/path/to/storage/tl_data/', exist_ok=True)
+    os.makedirs('/path/to/storage/qg_data/', exist_ok=True)
+
     print("Loading data for testing...")
     qg_data = load_data('qg', batch_size=None)
     tl_data = load_data('tl', batch_size=None)
@@ -1360,24 +1363,24 @@ if not os.path.exists('/path/to/storage/vol_tl_data/'):
     print('Loaded data.')
 
     for type, array in qg_data.items():
-        np.save(f'./qg_{type}.npy', array)
+        np.save(f'/path/to/storage/qg_data/qg_{type}.npy', array)
     for type, array in tl_data.items():
-        np.save(f'./tl_{type}.npy', array)
+        np.save(f'/path/to/storage/tl_data/tl_{type}.npy', array)
 
 
 else:
     qg_data = {
-        'pf_points': np.load('/path/to/storage/vol_qg_data/qg_pf_points.npy'),
-        'pf_features': np.load('/path/to/storage/vol_qg_data/qg_pf_features.npy'),
-        'pf_vectors': np.load('/path/to/storage/vol_qg_data/qg_pf_vectors.npy'),
-        'pf_mask': np.load('/path/to/storage/vol_qg_data/qg_pf_mask.npy'),
-        'labels': np.load('/path/to/storage/vol_qg_data/qg_labels.npy')}
+        'pf_points': np.load('/path/to/storage/qg_data/qg_pf_points.npy'),
+        'pf_features': np.load('/path/to/storage/qg_data/qg_pf_features.npy'),
+        'pf_vectors': np.load('/path/to/storage/qg_data/qg_pf_vectors.npy'),
+        'pf_mask': np.load('/path/to/storage/qg_data/qg_pf_mask.npy'),
+        'labels': np.load('/path/to/storage/qg_data/qg_labels.npy')}
     tl_data = {
-        'pf_points': np.load('/path/to/storage/vol_tl_data/tl_pf_points.npy'),
-        'pf_features': np.load('/path/to/storage/vol_tl_data/tl_pf_features.npy'),
-        'pf_vectors': np.load('/path/to/storage/vol_tl_data/tl_pf_vectors.npy'),
-        'pf_mask': np.load('/path/to/storage/vol_tl_data/tl_pf_mask.npy'),
-        'labels': np.load('/path/to/storage/vol_tl_data/tl_labels.npy')}
+        'pf_points': np.load('/path/to/storage/tl_data/tl_pf_points.npy'),
+        'pf_features': np.load('/path/to/storage/tl_data/tl_pf_features.npy'),
+        'pf_vectors': np.load('/path/to/storage/tl_data/tl_pf_vectors.npy'),
+        'pf_mask': np.load('/path/to/storage/tl_data/tl_pf_mask.npy'),
+        'labels': np.load('/path/to/storage/tl_data/tl_labels.npy')}
 
 print(f"Data loaded (and saved to .npy if it was not there already):")
 print(f"Feature dimensions:")
@@ -1386,8 +1389,8 @@ print(f"  TopLandscape (kin): {tl_data['pf_features'].shape[1]} features")
 
 # access data from local .npys 
 
-qgtrained_modelpath = '../models/on-qg-run2_best_epoch_state.pt'
-tltrained_modelpath = '../models/on-tl-run4_best_epoch_state.pt'
+qgtrained_modelpath = '../../models/on-qg-run2_best_epoch_state.pt'
+tltrained_modelpath = '../../models/on-tl-run4_best_epoch_state.pt'
 
 print('Loading models...')
 

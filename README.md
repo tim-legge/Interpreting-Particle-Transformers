@@ -13,7 +13,7 @@ We trained models using the [Weaver](https://github.com/hqucms/weaver-core) fram
 ```
 ./get_datasets.py [JetClass|QuarkGluon|TopLandscape] [-d DATA_DIR]
 ```
-- Note: While QuarkGluon and TopLandscape are not difficult to download fully in a local environment (each ~2.5 GB), JetClass is extremely large by comparison (~190 GB). One is recommended to either host an experiment with JetClass remotely or use a pretrained model.
+- Note: While QuarkGluon and TopLandscape are not difficult to download fully in a local environment (each about 3 GB), JetClass is extremely large by comparison (about 190 GB). One is recommended to either host an experiment with JetClass remotely or use a pretrained model.
 
 Then, run the desired `train.sh` script. For example, to run a training on QuarkGluon's full feature set (kinpid):
 ```
