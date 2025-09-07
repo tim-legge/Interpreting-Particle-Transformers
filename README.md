@@ -8,7 +8,7 @@ Our research utilizes a few specialized High-Energy Physics (HEP) Python package
 
 ## Training Models
 
-We trained models using the [Weaver](https://github.com/hqucms/weaver-core) framework in following with descriptions from [the official ParT repo](github.com/jet-universe/particle_transformer/blob/main/README.md). The models used for experiment are stored under [models](./models/). To train a ParT model from scratch, one can first download the dataset they wish to train on:
+We trained models using the [Weaver](https://github.com/hqucms/weaver-core) framework in following with descriptions from [the official ParT repo](github.com/jet-universe/particle_transformer/blob/main/README.md). Considering the central importance of ParT to our work, this repo is also built off of the original implementation by Qu *et al* in said repo. The models used for experiment are stored under [models](./models/). To train a ParT model from scratch, one can first download the dataset they wish to train on:
 
 ```
 ./get_datasets.py [JetClass|QuarkGluon|TopLandscape] [-d DATA_DIR]
@@ -20,7 +20,7 @@ Then, run the desired `train.sh` script. For example, to run a training on Quark
 ./train_QuarkGluon.sh ParT kinpid [options]
 ```
 
-Additional details are available at [the official ParT repo](github.com/jet-universe/particle_transformer/blob/main/README.md).
+Additional details are available at [the official ParT repo](github.com/jet-universe/particle_transformer/blob/main/README.md) and the [Weaver framework](https://github.com/hqucms/weaver-core).
 
 ## Workflow & Reproducing Results
 
@@ -39,6 +39,6 @@ As described above, training is done using weaver. This demands two kinds of fil
 
 Postprocessing comprises the data collection and visualization steps after a model has been fully trained. We produced the exact figures in the paper with the scripts in the [with_all_data](./postprocessing/with_all_data/) subfolder, while a much less intensive version utilizing sample data is in [with_sample_data](./postprocessing/with_sample_data/).
 
-- [with_all_data](./postprocessing/with_all_data/): The `inference.py` scripts all have roughly the same structure. They check to see if `.npy` files that contain testing data exist, and generate them if not. Then they run inference on chunks of each dataset at a time, saving their progress using rudimentary `counter.txt` files. Finally, they create 20-bin histogram `.npy` files for later use in the attention score plotting. Note that `/path/to/storage` was used as a universal placeholder and unilaterally replacing this with one's own desired location may not result in consistent filepaths. The `get_[figure].py` files either use these histogram files to plot attentioh distributions or otherwise represent data using the testing data `.npy` files.
+- [with_all_data](./postprocessing/with_all_data/): The `inference.py` scripts all have roughly the same structure. They check to see if `.npy` files that contain testing data exist, and generate them if not. Then they run inference on chunks of each dataset at a time, saving their progress using `counter.txt` files. Finally, they create 20-bin histogram `.npy` files for later use in the attention score plotting. Note that `/path/to/storage` was used as a universal placeholder and universally replacing this with one's own desired location may not result in consistent filepaths. The `get_[figure].py` files either use these histogram files to plot attention distributions or otherwise represent data using the testing data `.npy` files.
 
-- [with_sample_data](./postprocessing/with_sample_data/): QuarkGluon/TopLandscape analysis and JetClass full/kinematic analysis each have their own `.ipynb` notebook. Both load limited chunks of the sample data (up to ~50 jets should work locally in our experience). The same analyses are performed.
+- [with_sample_data](./postprocessing/with_sample_data/): QuarkGluon/TopLandscape analysis and JetClass full/kinematic analysis each have their own `.ipynb` notebook. Both load limited chunks of the sample data (up to ~50 jets should work locally in our experience). The same analyses as in the figures are performed, and results indicate trends similar to the paper's larger-scale analyses.
