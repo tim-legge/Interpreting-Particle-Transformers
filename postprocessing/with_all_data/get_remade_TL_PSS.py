@@ -2328,18 +2328,18 @@ qgtrained_modelpath = './model/on-qg-run2_best_epoch_state.pt'
 tltrained_modelpath = './models/on-tl-run4_best_epoch_state.pt'
 jcktrained_modelpath = './models/ParT_kin.pt'
 jc_fulltrained_modelpath = './models/ParT_full.pt'
-
+path_to_storage = '/moe-interpretability-data/datasets/TopLandscape/'
 # QG model loading and inference
 
 # TL model loading and inference
 
 tl_state_dict = torch.load(tltrained_modelpath, map_location=torch.device('cpu'))
 tl_model.load_state_dict(tl_state_dict)
-tl_pf_features = np.load('/path/to/data/storage/tl_pf_features.npy')[:howmanyjets]
-tl_pf_vectors = np.load('/path/to/data/storage/tl_pf_vectors.npy')[:howmanyjets]
-tl_pf_mask = np.load('/path/to/data/storage/tl_pf_mask.npy')[:howmanyjets]
-tl_pf_points = np.load('/path/to/data/storage/tl_pf_points.npy')[:howmanyjets]
-tl_labels = np.load('/path/to/data/storage/tl_labels.npy')[:howmanyjets]
+tl_pf_features = np.load(path_to_storage+'tl_pf_features.npy')[:howmanyjets]
+tl_pf_vectors = np.load(path_to_storage+'tl_pf_vectors.npy')[:howmanyjets]
+tl_pf_mask = np.load(path_to_storage+'tl_pf_mask.npy')[:howmanyjets]
+tl_pf_points = np.load(path_to_storage+'tl_pf_points.npy')[:howmanyjets]
+tl_labels = np.load(path_to_storage+'tl_labels.npy')[:howmanyjets]
 tl_model.eval()
 with torch.no_grad():
     tl_y_pred= tl_model(torch.from_numpy(tl_pf_points),torch.from_numpy(tl_pf_features),torch.from_numpy(tl_pf_vectors),torch.from_numpy(tl_pf_mask))
@@ -2364,20 +2364,20 @@ inter_abs = np.abs(flat_tl_inter[:min_len])
 
 # Avoid divide-by-zero and non-finite values
 mask = (inter_abs > 0) & np.isfinite(attn_abs) & np.isfinite(inter_abs)
-ratio = attn_abs[mask] / inter_abs[mask]
+diff = attn_abs[mask] - inter_abs[mask]
 
 # ---- Plot ----
 num_bins = 10
-weights = np.ones_like(ratio) / ratio.size  # bars sum to 1 across bins
+weights = np.ones_like(diff) / diff.size  # bars sum to 1 across bins
 
-bin_edges = [0, 1, 10, 100, 1000, 10000, 100000, 1000000, np.inf]
+bin_edges = [-np.inf, 0, 1, 10, 100, 1000, 10000, np.inf]
 
 # ---- Histogram with probability normalization ----
-counts, edges = np.histogram(ratio, bins=bin_edges)
+counts, edges = np.histogram(diff, bins=bin_edges)
 probabilities = counts / counts.sum()
 
-# ---- Labels (must be length bins-1 = 7) ----
-labels = ["0–1", "1–10", "10–100", "100–1k", "1k–10k", "10k–100k", "100k - 1000k", "1000k+"]
+# ---- Labels (must be length bins-1 = 6) ----
+labels = ["<0", "0–1", "1–10", "10–100", "100–1k", "1k–10k", "10k+"]
 
 # ---- Plot ----
 fig, ax = plt.subplots(figsize=(8, 6), dpi=300)
@@ -2388,7 +2388,7 @@ ax.set_xticks(x)
 ax.set_xticklabels(labels, rotation=30, ha="right")
 
 ax.set_ylabel("Probability")
-ax.set_xlabel("Magnitude of Attn. Score/Inter. Score")
+ax.set_xlabel("Magnitude of Attn. Score - Inter. Score")
 
 ax.margins(y=0.05)  
 

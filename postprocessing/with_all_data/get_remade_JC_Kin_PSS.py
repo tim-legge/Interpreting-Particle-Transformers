@@ -2323,20 +2323,24 @@ jc_kin_hooks = Pre_Softmax_Hook(model=jck_model)
 howmanyjets = 500
 
 jcktrained_modelpath = './models/ParT_kin.pt'
-
+path_to_storage = 'moe-interpretability-pv/datasets/'
 
 jck_state_dict = torch.load(jcktrained_modelpath, map_location=torch.device('cpu'))
 jck_model.load_state_dict(jck_state_dict)
-jck_pf_features = np.load('/path/to/data/storage/jc_kin_pf_features.npy')
-jck_pf_vectors  = np.load('/path/to/data/storage/jc_kin_pf_vectors.npy')
-jck_pf_mask     = np.load('/path/to/data/storage/jc_kin_pf_mask.npy')
-jck_pf_points   = np.load('/path/to/data/storage/jc_kin_pf_points.npy')
-jck_labels      = np.load('/path/to/data/storage/jc_kin_labels.npy')
+jck_pf_features = np.load(path_to_storage+'jc_full_pf_features.npy')
+jck_pf_vectors  = np.load(path_to_storage+'jc_full_pf_vectors.npy')
+jck_pf_mask     = np.load(path_to_storage+'jc_full_pf_mask.npy')
+jck_pf_points   = np.load(path_to_storage+'jc_full_pf_points.npy')
+jck_labels      = np.load(path_to_storage+'jc_full_labels.npy')
 
 # --- Shuffle all arrays with the same permutation ---
 n = jck_pf_points.shape[0]
 rng = np.random.default_rng()
 perm = rng.permutation(n)
+
+# remove indices 6-15 on axis 1 for kinematic feats only
+non_kin_feats = list(range(6, 16))
+jck_pf_features = np.delete(jck_pf_features, non_kin_feats, axis=1)
 
 jck_pf_features = jck_pf_features[perm]
 jck_pf_vectors  = jck_pf_vectors[perm]
@@ -2364,56 +2368,53 @@ import matplotlib.pyplot as plt
 
 from matplotlib.ticker import LogLocator, LogFormatterMathtext
 
-# ---- Data (assumes jc_kin_hooks exists) ----
-flat_jck_attn = jc_kin_hooks.pre_softmax_attentions.numpy().flatten()
-flat_jck_inter = jc_kin_hooks.pre_softmax_interactions.numpy().flatten()
+# ---- Data ----
+flat_jc_kin_attn = jc_kin_hooks.pre_softmax_attentions.numpy().flatten()
+flat_jc_kin_inter = jc_kin_hooks.pre_softmax_interactions.numpy().flatten()
 
-# Remove NaN/±inf to avoid histogram errors
-flat_jck_attn = flat_jck_attn[np.isfinite(flat_jck_attn)]
-flat_jck_inter = flat_jck_inter[np.isfinite(flat_jck_inter)]
+# Remove NaN/±inf
+flat_jc_kin_attn = flat_jc_kin_attn[np.isfinite(flat_jc_kin_attn)]
+flat_jc_kin_inter = flat_jc_kin_inter[np.isfinite(flat_jc_kin_inter)]
 
 # ---- Align & compute magnitude ratio |attn| / |inter| ----
-min_len = min(len(flat_jck_attn), len(flat_jck_inter))
-attn_abs  = np.abs(flat_jck_attn[:min_len])
-inter_abs = np.abs(flat_jck_inter[:min_len])
+min_len = min(len(flat_jc_kin_attn), len(flat_jc_kin_inter))
+attn_abs  = np.abs(flat_jc_kin_attn[:min_len])
+inter_abs = np.abs(flat_jc_kin_inter[:min_len])
 
 # Avoid divide-by-zero and non-finite values
 mask = (inter_abs > 0) & np.isfinite(attn_abs) & np.isfinite(inter_abs)
-ratio = attn_abs[mask] / inter_abs[mask]
-
-# ---- Plot (probability per bin) ----
-num_bins = 200
-weights = np.ones_like(ratio) / ratio.size  # bars sum to 1 across bins
-
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-
-# ---- Define bins: 0–1, 1–10, 10–100, 100–1000, 1000–10000, 10000+ ----
-bin_edges = [0, 1, 10, 100, 1000, 10000, 100000, 1000000, np.inf]
-
-# ---- Histogram with probability normalization ----
-counts, edges = np.histogram(ratio, bins=bin_edges)
-probabilities = counts / counts.sum()
-
-# ---- Labels (must be length 6 to match bins-1) ----
-labels = ["0–1", "1–10", "10–100", "100–1k", "1k–10k", "10k-100k", "100k-1000k", "1000k+"]
+diff = attn_abs[mask] - inter_abs[mask]
 
 # ---- Plot ----
-fig, ax = plt.subplots(figsize=(8,6), dpi=300)
+num_bins = 10
+weights = np.ones_like(diff) / diff.size  # bars sum to 1 across bins
+
+bin_edges = [-np.inf, 0, 1, 10, 100, 1000, 10000, np.inf]
+
+# ---- Histogram with probability normalization ----
+counts, edges = np.histogram(diff, bins=bin_edges)
+probabilities = counts / counts.sum()
+
+# ---- Labels (must be length bins-1 = 6) ----
+labels = ["<0", "0–1", "1–10", "10–100", "100–1k", "1k–10k", "10k+"]
+
+# ---- Plot ----
+fig, ax = plt.subplots(figsize=(8, 6), dpi=300)
 x = np.arange(len(probabilities))
-ax.bar(x, probabilities)  # color optional
+ax.bar(x, probabilities)
 
 ax.set_xticks(x)
 ax.set_xticklabels(labels, rotation=30, ha="right")
 
 ax.set_ylabel("Probability")
-ax.set_xlabel("Magnitude of Attn. Score/Inter. Score")
+ax.set_xlabel("Magnitude of Attn. Score - Inter. Score")
 
-ax.margins(y=0.05) 
+ax.margins(y=0.05)  
 
 plt.tight_layout()
-out_path = './JCK_AttnBar.pdf'
+
+out_path = './jc_kin_AttnBar.pdf'
+
 plt.savefig(out_path, bbox_inches="tight")
-plt.show()
-print('JCK done!')
+#plt.show()
+print('JC Kinematic Plots finished!')

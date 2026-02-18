@@ -2,7 +2,7 @@
 '''
 Usage:
 
-python ./getting_eta_phi_plots.py <jet_number>
+python ./getting_eta_phi_plots.py <decay_type>
 
 Looks for jets starting from jet_number to jet_number + 1000 for either Hadronic or Leptonic decays.
 plots corresponding eta-phi attention maps if it can find them.
@@ -2344,9 +2344,14 @@ jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
 
 import sys
 
-start_jet = sys.argv[1]
-start_jet = int(start_jet)
-howmanyjets = 1
+decay_type = sys.argv[1]
+classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
+subjets = [1, 2, 2, 2, 4, 3, 2, 2, 3, 2]
+if decay_type not in classes:
+    raise ValueError(f"Decay type {decay_type} not recognized. Must be one of {classes}.")
+start_jet = 0
+howmanyjets = 10
+found_desired_jets = False
 
 qgtrained_modelpath = './models/on-qg-run2_best_epoch_state.pt'
 tltrained_modelpath = './models/on-tl-run4_best_epoch_state.pt'
@@ -2355,17 +2360,34 @@ jcktrained_modelpath = './models/ParT_kin.pt'
 jc_kinpidtrained_modelpath = './models/ParT_kinpid.pt'
 jc_fulltrained_modelpath = './models/ParT_full.pt'
 
-data_stem = '/location/of/storage/'
-
-# JetClass kin model loading and inference
-
+data_stem = '/moe-interpretability/datasets/'
 jck_state_dict = torch.load(jcktrained_modelpath, map_location=torch.device('cpu'))
 jck_model.load_state_dict(jck_state_dict)
-jck_pf_features = np.load(data_stem+'jc_kin_pf_features.npy')[start_jet:start_jet+howmanyjets]
-jck_pf_vectors = np.load(data_stem+'jc_kin_pf_vectors.npy')[start_jet:start_jet+howmanyjets]
-jck_pf_mask = np.load(data_stem+'jc_kin_pf_mask.npy')[start_jet:start_jet+howmanyjets]
-jck_pf_points = np.load(data_stem+'jc_kin_pf_points.npy')[start_jet:start_jet+howmanyjets]
-jck_labels = np.load(data_stem+'jc_kin_labels.npy')[start_jet:start_jet+howmanyjets]
+
+# JetClass kin model loading and inference
+while not found_desired_jets:
+    jck_labels = np.load(data_stem+'jc_full_labels.npy')[start_jet:start_jet+howmanyjets]
+    for jet in range(jck_labels.shape[0]):
+        if classes[np.argmax(jck_labels[jet])] == decay_type:
+            label_idx = np.argmax(jck_labels[jet])
+            print(f'Found desired jet of type {decay_type} at index {start_jet + jet}!')
+            print(f'Plotting this and following ten jets')
+            start_jet += jet
+            found_desired_jets = True
+            break
+    if not found_desired_jets:
+        start_jet += 10000    
+
+jck_labels = np.load(data_stem+'jc_full_labels.npy')[start_jet:start_jet+howmanyjets]
+jck_pf_features = np.load(data_stem+'jc_full_pf_features.npy')[start_jet:start_jet+howmanyjets]
+jck_pf_vectors = np.load(data_stem+'jc_full_pf_vectors.npy')[start_jet:start_jet+howmanyjets]
+jck_pf_mask = np.load(data_stem+'jc_full_pf_mask.npy')[start_jet:start_jet+howmanyjets]
+jck_pf_points = np.load(data_stem+'jc_full_pf_points.npy')[start_jet:start_jet+howmanyjets]
+
+# remove indices 6-15 on axis 1 for kinematic feats only
+non_kin_feats = list(range(6, 16))
+jck_pf_features = np.delete(jck_pf_features, non_kin_feats, axis=1)
+
 jck_model.eval()
 with torch.no_grad():
     jck_y_pred= jck_model(torch.from_numpy(jck_pf_points),torch.from_numpy(jck_pf_features),torch.from_numpy(jck_pf_vectors),torch.from_numpy(jck_pf_mask))
@@ -2390,31 +2412,6 @@ jc_full_attention = jc_full_model.get_attention_matrix()
 jc_full_interaction = jc_full_model.get_interactionMatrix()
 
 print('JC Full done!')
-
-hadronic_top_exists = False
-leptonic_top_exists = False
-
-# see if hadronic tops exist in selected batch
-for jet in range(jck_labels.shape[0]):
-    if np.argmax(jck_labels[jet]) == 8:
-        print('Hadronic top found in batch!')
-        hadronic_top_jet = jet
-        hadronic_top_exists = True
-        print(f'Jet index: {hadronic_top_jet}')
-        break
-
-# see if leptonic tops exist in selected batch
-
-for jet in range(jck_labels.shape[0]):
-    if np.argmax(jck_labels[jet]) == 9:
-        print('Leptonic top found in batch!')
-        leptonic_top_jet = jet
-        leptonic_top_exists = True
-        print(f'Jet index: {leptonic_top_jet}')
-        break
-
-assert hadronic_top_exists or leptonic_top_exists, "No tops found in selected batch!"
-assert leptonic_top_exists, "No tops found in selected batch!"
 
 jc_kin_padding = jc_kin_hooks.cut_padding(jc_kin_hooks.pre_softmax_attentions, jck_pf_mask)
 jc_kin_pre_softmax_inter = jc_kin_hooks.cut_padding(jc_kin_hooks.pre_softmax_interactions, jck_pf_mask)
@@ -2678,7 +2675,7 @@ def plot_attention_with_particles(attention_head, jet, deta_all, dphi_all, pt_al
 
     # Save the figure instead of showing it
     print(f"Saving figure to {output_filename}...")
-    #plt.savefig(output_filename, bbox_inches='tight')
+    plt.savefig(output_filename, bbox_inches='tight')
     print("Figure saved.")
 
 def jck_plot_attention_with_particles(attention_head, jet, deta_all, dphi_all, pt_all, subjets_all, 
@@ -2937,21 +2934,12 @@ def jck_plot_attention_with_particles_and_ids(attention_head, jet, deta_all, dph
 
     # Save the figure instead of showing it
     print(f"Saving figure to {output_filename}...")
-    #plt.savefig(output_filename, bbox_inches='tight')
+    plt.savefig(output_filename, bbox_inches='tight')
     print("Figure saved.")
 
 # Example usage based on your context (assuming pf_features, pf_mask, and attention are already defined)
 
-if hadronic_top_exists:
-    jet = hadronic_top_jet
-    Decay = 'TopHadronic'
-if leptonic_top_exists:
-    jet = leptonic_top_jet
-    Decay = 'TopLeptonic'
-else:
-    raise ValueError("No top jets found in the selected batch.")
-
-jet = jet
+jet = start_jet
 number = jet
 num = 0
 for b in np.squeeze(jck_pf_mask[number]):
@@ -2959,7 +2947,7 @@ for b in np.squeeze(jck_pf_mask[number]):
         break
     num += 1
 
-print(f'Graphing for {Decay} jet')
+print(f'Graphing for {decay_type} jet')
 
 # Extract the 4-momentum components for the valid particles
 px = jck_pf_vectors[jet][0][0:num]
@@ -2969,10 +2957,7 @@ e = jck_pf_vectors[jet][3][0:num]
 
 # Get the subjets using the get_subjets function
 
-if hadronic_top_exists:
-    N_SUBJETS = 3
-if leptonic_top_exists:
-    N_SUBJETS = 2
+N_SUBJETS = subjets[label_idx]
 
 subjets, subjet_vectors = get_subjets(px, py, pz, e, N_SUBJETS=N_SUBJETS, JET_ALGO="kt")
 
@@ -3013,7 +2998,7 @@ for head in range(jc_kin_pre_softmax_attentions.shape[0]):
     jc_kin_pre_softmax_attentions[head] = torch.nn.functional.softmax(jc_kin_pre_softmax_attentions[head], dim=-1)
 
 # Example attention data, where `x` is the layer number
-Decay = Decay
+Decay = decay_type
 for head_number in range(8):
   jck_plot_attention_with_particles_and_ids(jc_kin_pre_softmax_attentions[head_number, 0:num, 0:num], jet, deta_all, dphi_all, pt_all, 
                                             subjets_all, layer_number, head_number, jck_pf_features, 
@@ -3027,11 +3012,6 @@ pz = jc_full_pf_vectors[jet][2][0:num]
 e = jc_full_pf_vectors[jet][3][0:num]
 
 # Get the subjets using the get_subjets function
-
-if hadronic_top_exists:
-    N_SUBJETS = 3
-if leptonic_top_exists:
-    N_SUBJETS = 2
 
 subjets, subjet_vectors = get_subjets(px, py, pz, e, N_SUBJETS=N_SUBJETS, JET_ALGO="kt")
 

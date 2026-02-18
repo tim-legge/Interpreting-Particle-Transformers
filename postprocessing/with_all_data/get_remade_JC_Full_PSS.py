@@ -2362,40 +2362,35 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ---- Data (assumes jc_kin_hooks exists) ----
-flat_jc_attn = jc_full_hooks.pre_softmax_attentions.numpy().flatten()
-flat_jc_inter = jc_full_hooks.pre_softmax_interactions.numpy().flatten()
+# ---- Data ----
+flat_jc_full_attn = jc_full_hooks.pre_softmax_attentions.numpy().flatten()
+flat_jc_full_inter = jc_full_hooks.pre_softmax_interactions.numpy().flatten()
 
-# Remove NaN/±inf to avoid histogram errors
-flat_jc_attn = flat_jc_attn[np.isfinite(flat_jc_attn)]
-flat_jc_inter = flat_jc_inter[np.isfinite(flat_jc_inter)]
+# Remove NaN/±inf
+flat_jc_full_attn = flat_jc_full_attn[np.isfinite(flat_jc_full_attn)]
+flat_jc_full_inter = flat_jc_full_inter[np.isfinite(flat_jc_full_inter)]
 
 # ---- Align & compute magnitude ratio |attn| / |inter| ----
-min_len = min(len(flat_jc_attn), len(flat_jc_inter))
-attn_abs  = np.abs(flat_jc_attn[:min_len])
-inter_abs = np.abs(flat_jc_inter[:min_len])
+min_len = min(len(flat_jc_full_attn), len(flat_jc_full_inter))
+attn_abs  = np.abs(flat_jc_full_attn[:min_len])
+inter_abs = np.abs(flat_jc_full_inter[:min_len])
 
 # Avoid divide-by-zero and non-finite values
 mask = (inter_abs > 0) & np.isfinite(attn_abs) & np.isfinite(inter_abs)
-ratio = attn_abs[mask] / inter_abs[mask]
+diff = attn_abs[mask] - inter_abs[mask]
 
-# ---- Plot (probability per bin) ----
-num_bins = 200
-weights = np.ones_like(ratio) / ratio.size  # bars sum to 1 across bins
+# ---- Plot ----
+num_bins = 10
+weights = np.ones_like(diff) / diff.size  # bars sum to 1 across bins
 
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-
-# ---- Define bins: 0–1, 1–10, 10–100, 100–1000, 1000–10000, 10000–100000, 100000+ ----
-bin_edges = [0, 1, 10, 100, 1000, 10000, 100000, 1000000, np.inf]
+bin_edges = [-np.inf, 0, 1, 10, 100, 1000, 10000, np.isinf]
 
 # ---- Histogram with probability normalization ----
-counts, edges = np.histogram(ratio, bins=bin_edges)
+counts, edges = np.histogram(diff, bins=bin_edges)
 probabilities = counts / counts.sum()
 
-# ---- Labels (must be length bins-1 = 7) ----
-labels = ["0–1", "1–10", "10–100", "100–1k", "1k–10k", "10k–100k", "100k - 1000k", "1000k+"]
+# ---- Labels (must be length bins-1 = 6) ----
+labels = ["<0", "0–1", "1–10", "10–100", "100–1k", "1k–10k", "10k+"]
 
 # ---- Plot ----
 fig, ax = plt.subplots(figsize=(8, 6), dpi=300)
@@ -2406,12 +2401,14 @@ ax.set_xticks(x)
 ax.set_xticklabels(labels, rotation=30, ha="right")
 
 ax.set_ylabel("Probability")
-ax.set_xlabel("Magnitude of Attn. Score/Inter. Score")
-ax.margins(y=0.05)
+ax.set_xlabel("Magnitude of Attn. Score - Inter. Score")
+
+ax.margins(y=0.05)  
 
 plt.tight_layout()
 
-out_path = './JC_AttnBar.pdf'
+out_path = './jc_full_AttnBar.pdf'
+
 plt.savefig(out_path, bbox_inches="tight")
 plt.show()
-print('JC Full finished!')
+print('JC Full Plots finished!')
