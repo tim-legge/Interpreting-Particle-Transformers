@@ -2345,12 +2345,13 @@ jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
 import sys
 
 decay_type = sys.argv[1]
+jet_idx = int(sys.argv[2]) if len(sys.argv) > 2 else 0
 classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
 subjets = [1, 2, 2, 2, 4, 3, 2, 2, 3, 2]
 if decay_type not in classes:
     raise ValueError(f"Decay type {decay_type} not recognized. Must be one of {classes}.")
 start_jet = 0
-howmanyjets = 10
+howmanyjets = jet_idx
 found_desired_jets = False
 
 qgtrained_modelpath = './models/on-qg-run2_best_epoch_state.pt'
@@ -2360,7 +2361,7 @@ jcktrained_modelpath = './models/ParT_kin.pt'
 jc_kinpidtrained_modelpath = './models/ParT_kinpid.pt'
 jc_fulltrained_modelpath = './models/ParT_full.pt'
 
-data_stem = '/moe-interpretability/datasets/'
+data_stem = '/moe-interpretability-pv/datasets/'
 jck_state_dict = torch.load(jcktrained_modelpath, map_location=torch.device('cpu'))
 jck_model.load_state_dict(jck_state_dict)
 
@@ -2385,7 +2386,7 @@ jck_pf_mask = np.load(data_stem+'jc_full_pf_mask.npy')[start_jet:start_jet+howma
 jck_pf_points = np.load(data_stem+'jc_full_pf_points.npy')[start_jet:start_jet+howmanyjets]
 
 # remove indices 6-15 on axis 1 for kinematic feats only
-non_kin_feats = list(range(6, 16))
+non_kin_feats = list(range(5, 15))
 jck_pf_features = np.delete(jck_pf_features, non_kin_feats, axis=1)
 
 jck_model.eval()
@@ -2670,7 +2671,7 @@ def plot_attention_with_particles(attention_head, jet, deta_all, dphi_all, pt_al
     vmax=attention_head.max()
     norm = plt.Normalize(vmin=attention_head.min(), vmax=attention_head.max())  # Normalize based on attention values
     #cb = ColorbarBase(cbar_ax, cmap=cmap, norm=norm)
-    cb = plt.colorbar(ScalarMappable(norm=norm, cmap=cmap))
+    cb = plt.colorbar(ScalarMappable(norm=norm, cmap=cmap), ax=ax)
     cb.set_label('Attention Weight')
 
     # Save the figure instead of showing it
@@ -2788,7 +2789,7 @@ def jck_plot_attention_with_particles(attention_head, jet, deta_all, dphi_all, p
     vmax=attention_head.max()
     norm = plt.Normalize(vmin=attention_head.min(), vmax=attention_head.max())  # Normalize based on attention values
     #cb = ColorbarBase(cbar_ax, cmap=cmap, norm=norm)
-    cb = plt.colorbar(ScalarMappable(norm=norm, cmap=cmap))
+    cb = plt.colorbar(ScalarMappable(norm=norm, cmap=cmap),ax=ax)
     cb.set_label('Attention Weight')
 
     # Save the figure instead of showing it
@@ -2929,7 +2930,7 @@ def jck_plot_attention_with_particles_and_ids(attention_head, jet, deta_all, dph
     vmax=attention_head.max()
     norm = plt.Normalize(vmin=attention_head.min(), vmax=attention_head.max())  # Normalize based on attention values
     #cb = ColorbarBase(cbar_ax, cmap=cmap, norm=norm)
-    cb = plt.colorbar(ScalarMappable(norm=norm, cmap=cmap))
+    cb = plt.colorbar(ScalarMappable(norm=norm, cmap=cmap),ax=ax)
     cb.set_label('Attention Weight')
 
     # Save the figure instead of showing it
@@ -2939,13 +2940,9 @@ def jck_plot_attention_with_particles_and_ids(attention_head, jet, deta_all, dph
 
 # Example usage based on your context (assuming pf_features, pf_mask, and attention are already defined)
 
-jet = start_jet
+jet = -1
 number = jet
-num = 0
-for b in np.squeeze(jck_pf_mask[number]):
-    if b == 0:
-        break
-    num += 1
+num = jc_kin_padding[0]
 
 print(f'Graphing for {decay_type} jet')
 
@@ -2990,6 +2987,12 @@ subjets_all = np.array(subjets_all)
 #    os.makedirs('./JetClasskin_attn_plots')
 #if not os.path.exists('./JetClassfull_attn_plots'):
 #    os.makedirs('./JetClassfull_attn_plots')
+
+import subprocess
+if not os.path.exists('./JetClasskin_attn_plots'):
+    subprocess.run(['mkdir', './JetClasskin_attn_plots'])
+if not os.path.exists('./JetClassfull_attn_plots'):
+    subprocess.run(['mkdir', './JetClassfull_attn_plots'])
 
 layer_number = 7  # Choose the layer
 
