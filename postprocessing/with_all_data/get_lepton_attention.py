@@ -1,4 +1,4 @@
-# This script generated the final Attn. Score/Inter. Score plot for JetClass Full
+# This script generated the final lepton histograms in the plot
 
 from typing import List, Optional
 import timeit
@@ -2321,19 +2321,20 @@ jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
 
 
+
 howmanyjets = 500
 
 jc_fulltrained_modelpath = './models/ParT_full.pt'
 
 rng = np.random.default_rng()
-
+data_stem = '/moe-interpretability-pv/datasets/'
 jc_full_state_dict = torch.load(jc_fulltrained_modelpath, map_location=torch.device('cpu'))
 jc_full_model.load_state_dict(jc_full_state_dict)
-jc_full_pf_features = np.load('/path/to/data/storage/jc_full_pf_features.npy')[:howmanyjets]
-jc_full_pf_vectors = np.load('/path/to/data/storage/jc_full_pf_vectors.npy')[:howmanyjets]
-jc_full_pf_mask = np.load('/path/to/data/storage/jc_full_pf_mask.npy')[:howmanyjets]
-jc_full_pf_points = np.load('/path/to/data/storage/jc_full_pf_points.npy')[:howmanyjets]
-jc_full_labels = np.load('/path/to/data/storage/jc_full_labels.npy')[:howmanyjets]
+jc_full_pf_features = np.load(data_stem+'jc_full_pf_features.npy')[start_jet:start_jet+howmanyjets]
+jc_full_pf_vectors = np.load(data_stem+'jc_full_pf_vectors.npy')[start_jet:start_jet+howmanyjets]
+jc_full_pf_mask = np.load(data_stem+'jc_full_pf_mask.npy')[start_jet:start_jet+howmanyjets]
+jc_full_pf_points = np.load(data_stem+'jc_full_pf_points.npy')[start_jet:start_jet+howmanyjets]
+jc_full_labels = np.load(data_stem+'jc_full_labels.npy')[start_jet:start_jet+howmanyjets]
 rng = np.random.default_rng(seed=42)
 
 # Make an array of indices and shuffle them

@@ -2940,7 +2940,7 @@ def jck_plot_attention_with_particles_and_ids(attention_head, jet, deta_all, dph
 
 # Example usage based on your context (assuming pf_features, pf_mask, and attention are already defined)
 
-jet = -1
+jet = jet_idx-1
 number = jet
 num = jc_kin_padding[0]
 
