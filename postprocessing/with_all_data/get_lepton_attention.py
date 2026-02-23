@@ -2324,8 +2324,9 @@ classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl
 start_indices = [80000, 0, 10000, 20000, 40000, 30000, 90000, 70000, 60000, 50000]
 
 import sys
-class_to_analyze = sys.argv[1] if sys.argv in ('Hqql' or 'Tbl') else 'Hqql'
+class_to_analyze = sys.argv[1]
 start_jet = start_indices[classes.index(class_to_analyze)]
+assert class_to_analyze in ['Hqql', 'Tbl'], 'to get lepton attention plots, please specify class as Hqql or Tbl'
 
 howmanyjets = 1000
 
@@ -2422,10 +2423,10 @@ plt.tight_layout()
 #plt.show()
 #print('JC Full finished!')
 
-jc_kin_lepton_attention, _ = get_model('jck')
+jc_kin_lepton_attention = get_model('jck')
 jc_kin_lepton_attention_hooks = Pre_Softmax_Hook(model=jc_kin_lepton_attention)
 
-init_lepton_attention, _ = get_model('jck')
+init_lepton_attention = get_model('jck')
 init_lepton_attention_hooks = Pre_Softmax_Hook(model=init_lepton_attention)
 
 init_lepton_attention.eval()
