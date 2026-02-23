@@ -2320,7 +2320,8 @@ jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 
 jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
 
-
+classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
+start_indices = []
 
 howmanyjets = 500
 
