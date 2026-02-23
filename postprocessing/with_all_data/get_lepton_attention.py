@@ -2321,9 +2321,13 @@ jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
 
 classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
-start_indices = []
+start_indices = [80000, 0, 10000, 20000, 40000, 30000, 90000, 70000, 60000, 50000]
 
-howmanyjets = 500
+import sys
+class_to_analyze = sys.argv[1] if sys.argv in ('Hqql' or 'Tbl') else 'Hqql'
+start_jet = start_indices[classes.index(class_to_analyze)]
+
+howmanyjets = 1000
 
 jc_fulltrained_modelpath = './models/ParT_full.pt'
 
@@ -2428,7 +2432,7 @@ init_lepton_attention.eval()
 with torch.no_grad():
     init_pred = init_lepton_attention(torch.from_numpy(jc_full_pf_points),
                                 torch.from_numpy(jc_full_pf_features[:,0:7,:]),
-                                torch.from_numpy(jc_full_pf_vectors),torch.from_numpy(full_pf_mask))
+                                torch.from_numpy(jc_full_pf_vectors),torch.from_numpy(jc_full_pf_mask))
 init_lepton_attentions = init_lepton_attention.get_attention_matrix()
 init_leptonic_interaction = init_lepton_attention.get_interactionMatrix()
 
