@@ -44,9 +44,9 @@ import subprocess
 import argparse
 
 parser = argparse.ArgumentParser(description='Lepton job specs.')
-parser.add_argument('--class-to-analyze', type=str, help='Class to analyze (Hqql, Tbl)')
-parser.add_argument('--chunk', type=int, help='chunk number')
-parser.add_argument('--num-chunks', type=int, default=10, help='total number of chunks')
+parser.add_argument('--class-to-analyze', '-a', type=str, help='Class to analyze (Hqql, Tbl)')
+parser.add_argument('--chunk', '-c', type=int, help='chunk number')
+parser.add_argument('--num-chunks', '-n', type=int, default=10, help='total number of chunks')
 parser.add_argument('--restart', action='store_true', help='Whether to restart the job from scratch, or continue from the last counter')
 args = parser.parse_args()
 
@@ -2186,7 +2186,7 @@ class Pre_Softmax_Hook:
             padding_limits.append(padding_limit)
             #tensor_as_ak[:,jet_idx,:,:,:] = tensor_as_ak[:,jet_idx,:,:padding_limit, :padding_limit]
         
-        print(f'Padding Limit: {padding_limits}')
+        #print(f'Padding Limit: {padding_limits}')
 
         return padding_limits
 
@@ -2353,18 +2353,20 @@ storage_path = base_dir+f'ParT_{class_to_analyze}_hists/'
 counter_path = storage_path + f'chunk_{chunk}_counter.txt'
 
 if not os.path.exists(counter_path) or restart:
-    subprocess.run(['sudo', 'mkdir', 'p', storage_path])
-    with open(counter_path, 'w') as f:
+    subprocess.run(['sudo', 'mkdir', '-p', storage_path])
+    with open('counter.txt', 'w') as f:
         f.write(str(start_jet))
+    subprocess.run(['sudo', 'cp', 'counter.txt', counter_path])
 else:
+    subprocess.run(['sudo', 'cp', counter_path, 'counter.txt'])
     with open(counter_path, 'r') as f:
         counter = int(f.read().strip())
 
 jc_kin_lepton_attention = get_model('jck')
 
-while counter < start_jet + (chunk+1)*(total_jets//num_chunks):
-    jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')[start_jet:start_jet+howmanyjets]
-    jc_full_pf_vectors = np.load(dataset_path+'jc_full_pf_vectors.npy')[start_jet:start_jet+howmanyjets]
+while counter < start_jet + (total_jets//num_chunks):
+    jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')[counter:counter+howmanyjets]
+    jc_full_pf_vectors = np.load(dataset_path+'jc_full_pf_vectors.npy')[counter:counter+howmanyjets]
     jc_full_pf_mask = np.load(dataset_path+'jc_full_pf_mask.npy')[start_jet:start_jet+howmanyjets]
     jc_full_pf_points = np.load(dataset_path+'jc_full_pf_points.npy')[start_jet:start_jet+howmanyjets]
     jc_full_labels = np.load(dataset_path+'jc_full_labels.npy')[start_jet:start_jet+howmanyjets]
@@ -2445,10 +2447,10 @@ while counter < start_jet + (chunk+1)*(total_jets//num_chunks):
     # (optional) quick sanity checks
     ratios = np.array(ratios, dtype=float)
     raw_ratios = np.array(raw_ratios, dtype=float)
-    print("Bounded ratio min/max:", np.nanmin(ratios), np.nanmax(ratios))
-    print("Raw ratio min/max (can be >1):", np.nanmin(raw_ratios), np.nanmax(raw_ratios))
-    print("Frac of cases with near-zero raw denom:",
-        np.mean(np.isclose(raw_ratios * 0 + raw_numer, raw_numer) & (np.abs(raw_total) < 1e-8)))
+    #print("Bounded ratio min/max:", np.nanmin(ratios), np.nanmax(ratios))
+    #print("Raw ratio min/max (can be >1):", np.nanmin(raw_ratios), np.nanmax(raw_ratios))
+    #print("Frac of cases with near-zero raw denom:",
+    #    np.mean(np.isclose(raw_ratios * 0 + raw_numer, raw_numer) & (np.abs(raw_total) < 1e-8)))
 
     for li, x in enumerate(tqdm(init_attn, desc="Layers")):         # x: (N, H, 128, 128)
         for ni, z in enumerate(x):                              # z: (H, 128, 128)
@@ -2483,10 +2485,10 @@ while counter < start_jet + (chunk+1)*(total_jets//num_chunks):
     # (optional) quick sanity checks
     ratios = np.array(ratios, dtype=float)
     raw_ratios = np.array(raw_ratios, dtype=float)
-    print("Bounded ratio min/max:", np.nanmin(ratios), np.nanmax(ratios))
-    print("Raw ratio min/max (can be >1):", np.nanmin(raw_ratios), np.nanmax(raw_ratios))
-    print("Frac of cases with near-zero raw denom:",
-        np.mean(np.isclose(raw_ratios * 0 + raw_numer, raw_numer) & (np.abs(raw_total) < 1e-8)))
+    #print("Bounded ratio min/max:", np.nanmin(ratios), np.nanmax(ratios))
+    #print("Raw ratio min/max (can be >1):", np.nanmin(raw_ratios), np.nanmax(raw_ratios))
+    #print("Frac of cases with near-zero raw denom:",
+    #    np.mean(np.isclose(raw_ratios * 0 + raw_numer, raw_numer) & (np.abs(raw_total) < 1e-8)))
 
     #print('These are the ratios of attention to lepton / overall:')
     #print(f'Model trained on JetClass Kinematic: {ratios}')
@@ -2499,8 +2501,9 @@ while counter < start_jet + (chunk+1)*(total_jets//num_chunks):
 
     print(f"Saved ratios for chunk {chunk} to {storage_path} - processed jets {counter} to {counter+howmanyjets}")
     counter += howmanyjets
-    with open(counter_path, 'w') as f:
+    with open('counter', 'w') as f:
         f.write(str(counter))
+    subprocess.run(['sudo', 'cp', 'counter', counter_path])
 
 # Load arrays
 untrained = np.load('leptonratiosUNTRAINED.npy')
