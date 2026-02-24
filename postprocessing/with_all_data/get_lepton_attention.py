@@ -88,12 +88,18 @@ else:
 
 jc_kin_lepton_attention = get_model('jck')
 
+jc_full_pf_features = np.load(dataset_path+'jc_full_2M_features_0.npy')
+jc_full_pf_vectors = np.load(dataset_path+'jc_full_2M_vectors.npy')
+jc_full_pf_mask = np.load(dataset_path+'jc_full_2M_mask.npy')
+jc_full_pf_points = np.load(dataset_path+'jc_full_2M_points.npy')
+jc_full_labels = np.load(dataset_path+'jc_full_2M_labels.npy')
+
 while counter < start_jet + (total_jets//num_chunks):
-    jc_full_pf_features = np.load(dataset_path+'jc_full_2M_features_0.npy')[counter:counter+howmanyjets]
-    jc_full_pf_vectors = np.load(dataset_path+'jc_full_2M_vectors.npy')[counter:counter+howmanyjets]
-    jc_full_pf_mask = np.load(dataset_path+'jc_full_2M_mask.npy')[start_jet:start_jet+howmanyjets]
-    jc_full_pf_points = np.load(dataset_path+'jc_full_2M_points.npy')[start_jet:start_jet+howmanyjets]
-    jc_full_labels = np.load(dataset_path+'jc_full_2M_labels.npy')[start_jet:start_jet+howmanyjets]
+    jc_pf_features = jc_full_pf_features[counter:counter+howmanyjets]
+    jc_pf_vectors = jc_full_pf_vectors[counter:counter+howmanyjets]
+    jc_pf_mask = jc_full_pf_mask[counter:counter+howmanyjets]
+    jc_pf_points = jc_full_pf_points[counter:counter+howmanyjets]
+    jc_labels = jc_full_labels[counter:counter+howmanyjets]
 
     jc_kin_lepton_attention_hooks = Pre_Softmax_Hook(model=jc_kin_lepton_attention)
     init_lepton_attention = get_model('jck')
@@ -101,22 +107,22 @@ while counter < start_jet + (total_jets//num_chunks):
 
     init_lepton_attention.eval()
     with torch.no_grad():
-        init_pred = init_lepton_attention(torch.from_numpy(jc_full_pf_points),
-                                    torch.from_numpy(jc_full_pf_features[:,0:7,:]),
-                                    torch.from_numpy(jc_full_pf_vectors),torch.from_numpy(jc_full_pf_mask))
+        init_pred = init_lepton_attention(torch.from_numpy(jc_pf_points),
+                                    torch.from_numpy(jc_pf_features[:,0:7,:]),
+                                    torch.from_numpy(jc_pf_vectors),torch.from_numpy(jc_pf_mask))
 
     jc_kin_lepton_attention.eval()
     with torch.no_grad():
-        jck_y_pred= jc_kin_lepton_attention(torch.from_numpy(jc_full_pf_points),
-                                            torch.from_numpy(jc_full_pf_features[:,0:7,:]),
-                                            torch.from_numpy(jc_full_pf_vectors),torch.from_numpy(jc_full_pf_mask))
+        jck_y_pred= jc_kin_lepton_attention(torch.from_numpy(jc_pf_points),
+                                            torch.from_numpy(jc_pf_features[:,0:7,:]),
+                                            torch.from_numpy(jc_pf_vectors),torch.from_numpy(jc_pf_mask))
     jck_attention = jc_kin_lepton_attention.get_attention_matrix()
     jck_interaction = jc_kin_lepton_attention.get_interactionMatrix()
 
     print('JC full done!')
 
-    jc_kin_padding = jc_kin_lepton_attention_hooks.cut_padding(jc_kin_lepton_attention_hooks.pre_softmax_attentions, jc_full_pf_mask)
-    jc_kin_init_padding = init_lepton_attention_hooks.cut_padding(init_lepton_attention_hooks.pre_softmax_attentions, jc_full_pf_mask)
+    jc_kin_padding = jc_kin_lepton_attention_hooks.cut_padding(jc_kin_lepton_attention_hooks.pre_softmax_attentions, jc_pf_mask)
+    jc_kin_init_padding = init_lepton_attention_hooks.cut_padding(init_lepton_attention_hooks.pre_softmax_attentions, jc_pf_mask)
 
     attn = jc_kin_lepton_attention_hooks.pre_softmax_attentions.numpy()
     inter = jc_kin_lepton_attention_hooks.pre_softmax_interactions.numpy()
@@ -140,8 +146,8 @@ while counter < start_jet + (total_jets//num_chunks):
     for li, x in enumerate(tqdm(attn, desc="Layers")):         # x: (N, H, 128, 128)
         for ni, z in enumerate(x):                              # z: (H, 128, 128)
             # muon/electron key columns for THIS SAMPLE
-            key_mask = (jc_full_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
-                        jc_full_pf_features[ni, MUON_IDX, :].astype(bool))
+            key_mask = (jc_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
+                        jc_pf_features[ni, MUON_IDX, :].astype(bool))
             key_cols = np.flatnonzero(key_mask)
 
             for hi, y in enumerate(z):                          # y: (128, 128)
@@ -178,8 +184,8 @@ while counter < start_jet + (total_jets//num_chunks):
     for li, x in enumerate(tqdm(init_attn, desc="Layers")):         # x: (N, H, 128, 128)
         for ni, z in enumerate(x):                              # z: (H, 128, 128)
             # muon/electron key columns for THIS SAMPLE
-            key_mask = (jc_full_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
-                        jc_full_pf_features[ni, MUON_IDX, :].astype(bool))
+            key_mask = (jc_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
+                        jc_pf_features[ni, MUON_IDX, :].astype(bool))
             key_cols = np.flatnonzero(key_mask)
 
             for hi, y in enumerate(z):                          # y: (128, 128)
