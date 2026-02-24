@@ -62,7 +62,7 @@ jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
 
 classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
-start_indices = [8, 0, 1, 2, 4, 3, 9, 7, 6, 5] * 200000
+start_indices = np.array([8, 0, 1, 2, 4, 3, 9, 7, 6, 5]) * 200000
 total_jets = 200000
 
 start_jet = counter = start_indices[classes.index(class_to_analyze)] + chunk*(total_jets//num_chunks)
