@@ -38,6 +38,22 @@ from torch._torch_docs import reproducibility_notes, sparse_support_notes, tf32_
 import matplotlib.pyplot as plt
 import mplhep as hep
 plt.style.use(hep.style.ROOT)
+import numpy as np
+from tqdm.auto import tqdm
+import subprocess
+import argparse
+
+parser = argparse.ArgumentParser(description='Lepton job specs.')
+parser.add_argument('--class-to-analyze', type=str, help='Class to analyze (Hqql, Tbl)')
+parser.add_argument('--chunk', type=int, help='chunk number')
+parser.add_argument('--num-chunks', type=int, default=10, help='total number of chunks')
+parser.add_argument('--restart', action='store_true', help='Whether to restart the job from scratch, or continue from the last counter')
+args = parser.parse_args()
+
+class_to_analyze = args.class_to_analyze
+chunk = args.chunk
+num_chunks = args.num_chunks
+restart = args.restart
 
 class MultiheadAttention(nn.Module):
     r"""Allows the model to jointly attend to information from different representation subspaces.
@@ -2321,231 +2337,170 @@ jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
 
 classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
-start_indices = [80000, 0, 10000, 20000, 40000, 30000, 90000, 70000, 60000, 50000]
+start_indices = [8, 0, 1, 2, 4, 3, 9, 7, 6, 5] * 200000
+total_jets = 200000
 
-import sys
-class_to_analyze = sys.argv[1]
-start_jet = start_indices[classes.index(class_to_analyze)]
+start_jet = counter = start_indices[classes.index(class_to_analyze)] + chunk*(total_jets//num_chunks)
 assert class_to_analyze in ['Hqql', 'Tbl'], 'to get lepton attention plots, please specify class as Hqql or Tbl'
+# check 
 
-howmanyjets = 200
+base_dir = '/moe-interpretability-pv/'
 
-jc_fulltrained_modelpath = './models/ParT_full.pt'
+howmanyjets = 500
 
-rng = np.random.default_rng()
-data_stem = '/moe-interpretability-pv/datasets/'
-jc_full_state_dict = torch.load(jc_fulltrained_modelpath, map_location=torch.device('cpu'))
-jc_full_model.load_state_dict(jc_full_state_dict)
-jc_full_pf_features = np.load(data_stem+'jc_full_pf_features.npy')[start_jet:start_jet+howmanyjets]
-jc_full_pf_vectors = np.load(data_stem+'jc_full_pf_vectors.npy')[start_jet:start_jet+howmanyjets]
-jc_full_pf_mask = np.load(data_stem+'jc_full_pf_mask.npy')[start_jet:start_jet+howmanyjets]
-jc_full_pf_points = np.load(data_stem+'jc_full_pf_points.npy')[start_jet:start_jet+howmanyjets]
-jc_full_labels = np.load(data_stem+'jc_full_labels.npy')[start_jet:start_jet+howmanyjets]
-rng = np.random.default_rng(seed=42)
+dataset_path = base_dir+'datasets/'
+storage_path = base_dir+f'ParT_{class_to_analyze}_hists/'
+counter_path = storage_path + f'chunk_{chunk}_counter.txt'
 
-# Make an array of indices and shuffle them
-indices = np.arange(len(jc_full_labels))
-rng.shuffle(indices)
-
-# Apply the shuffle consistently across all arrays
-jc_full_pf_features = jc_full_pf_features[indices]
-jc_full_pf_vectors  = jc_full_pf_vectors[indices]
-jc_full_pf_mask     = jc_full_pf_mask[indices]
-jc_full_pf_points   = jc_full_pf_points[indices]
-jc_full_labels      = jc_full_labels[indices]
-jc_full_model.eval()
-with torch.no_grad():
-    jc_full_y_pred= jc_full_model(torch.from_numpy(jc_full_pf_points),torch.from_numpy(jc_full_pf_features),torch.from_numpy(jc_full_pf_vectors),torch.from_numpy(jc_full_pf_mask))
-jc_full_attention = jc_full_model.get_attention_matrix()
-jc_full_interaction = jc_full_model.get_interactionMatrix()
-#out_path = './JC_AttnBar.pdf'
-#plt.savefig(out_path, bbox_inches="tight")
-#plt.show()
-#print('JC Full finished!')
+if not os.path.exists(counter_path) or restart:
+    subprocess.run(['sudo', 'mkdir', 'p', storage_path])
+    with open(counter_path, 'w') as f:
+        f.write(str(start_jet))
+else:
+    with open(counter_path, 'r') as f:
+        counter = int(f.read().strip())
 
 jc_kin_lepton_attention = get_model('jck')
-jc_kin_lepton_attention_hooks = Pre_Softmax_Hook(model=jc_kin_lepton_attention)
 
-init_lepton_attention = get_model('jck')
-init_lepton_attention_hooks = Pre_Softmax_Hook(model=init_lepton_attention)
+while counter < start_jet + (chunk+1)*(total_jets//num_chunks):
+    jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')[start_jet:start_jet+howmanyjets]
+    jc_full_pf_vectors = np.load(dataset_path+'jc_full_pf_vectors.npy')[start_jet:start_jet+howmanyjets]
+    jc_full_pf_mask = np.load(dataset_path+'jc_full_pf_mask.npy')[start_jet:start_jet+howmanyjets]
+    jc_full_pf_points = np.load(dataset_path+'jc_full_pf_points.npy')[start_jet:start_jet+howmanyjets]
+    jc_full_labels = np.load(dataset_path+'jc_full_labels.npy')[start_jet:start_jet+howmanyjets]
+    rng = np.random.default_rng(seed=42)
 
-init_lepton_attention.eval()
-with torch.no_grad():
-    init_pred = init_lepton_attention(torch.from_numpy(jc_full_pf_points),
-                                torch.from_numpy(jc_full_pf_features[:,0:7,:]),
-                                torch.from_numpy(jc_full_pf_vectors),torch.from_numpy(jc_full_pf_mask))
-init_lepton_attentions = init_lepton_attention.get_attention_matrix()
-init_leptonic_interaction = init_lepton_attention.get_interactionMatrix()
+    jc_kin_lepton_attention_hooks = Pre_Softmax_Hook(model=jc_kin_lepton_attention)
+    init_lepton_attention = get_model('jck')
+    init_lepton_attention_hooks = Pre_Softmax_Hook(model=init_lepton_attention)
 
-# --- Create mask for label = 9 ---
-# --- Normalize labels to 1-D class indices ---
-if jc_full_labels.ndim == 2 and jc_full_labels.shape[1] > 1:
-    # one-hot -> class ids
-    y = np.argmax(jc_full_labels, axis=1)
-else:
-    y = np.squeeze(jc_full_labels)  # handles (N,) or (N,1)
+    init_lepton_attention.eval()
+    with torch.no_grad():
+        init_pred = init_lepton_attention(torch.from_numpy(jc_full_pf_points),
+                                    torch.from_numpy(jc_full_pf_features[:,0:7,:]),
+                                    torch.from_numpy(jc_full_pf_vectors),torch.from_numpy(jc_full_pf_mask))
 
-# --- Build mask for class 9 on the FIRST axis ---
-mask9 = (y == classes.index(class_to_analyze))  # boolean array of shape (N,)
+    jc_kin_lepton_attention.eval()
+    with torch.no_grad():
+        jck_y_pred= jc_kin_lepton_attention(torch.from_numpy(jc_full_pf_points),
+                                            torch.from_numpy(jc_full_pf_features[:,0:7,:]),
+                                            torch.from_numpy(jc_full_pf_vectors),torch.from_numpy(jc_full_pf_mask))
+    jck_attention = jc_kin_lepton_attention.get_attention_matrix()
+    jck_interaction = jc_kin_lepton_attention.get_interactionMatrix()
 
-# Optional sanity check (all arrays should share the same first dimension)
-N = mask9.shape[0]
-for name, arr in [
-    ("jck_pf_features", jc_full_pf_features),
-    ("jck_pf_vectors",  jc_full_pf_vectors),
-    ("jck_pf_mask",     jc_full_pf_mask),
-    ("jck_pf_points",   jc_full_pf_points),
-    ("jck_labels",      jc_full_labels),
-]:
-    assert arr.shape[0] == N, f"{name} first dim {arr.shape[0]} != labels {N}"
+    print('JC full done!')
 
-# --- Apply mask along the first axis ---
-full_pf_features = jc_full_pf_features[mask9, ...]
-full_pf_vectors  = jc_full_pf_vectors[mask9, ...]
-full_pf_mask     = jc_full_pf_mask[mask9, ...]
-full_pf_points   = jc_full_pf_points[mask9, ...]
-full_labels      = jc_full_labels[mask9, ...]  # keeps one-hot rows or class indices accordingly
+    jc_kin_padding = jc_kin_lepton_attention_hooks.cut_padding(jc_kin_lepton_attention_hooks.pre_softmax_attentions, jc_full_pf_mask)
+    jc_kin_init_padding = init_lepton_attention_hooks.cut_padding(init_lepton_attention_hooks.pre_softmax_attentions, jc_full_pf_mask)
 
+    attn = jc_kin_lepton_attention_hooks.pre_softmax_attentions.numpy()
+    inter = jc_kin_lepton_attention_hooks.pre_softmax_interactions.numpy()
 
-# --- Shuffle all arrays with the same permutation ---
-n = full_pf_points.shape[0]
-rng = np.random.default_rng()
-perm = rng.permutation(n)
+    init_attn = init_lepton_attention_hooks.pre_softmax_attentions.numpy()
+    init_inter = init_lepton_attention_hooks.pre_softmax_interactions.numpy()
 
-full_pf_features = full_pf_features[perm]
-full_pf_vectors  = full_pf_vectors[perm]
-full_pf_mask     = full_pf_mask[perm]
-full_pf_points   = full_pf_points[perm]
-full_labels      = full_labels[perm]
+    # attn, inter: (L, N, H, 128, 128)
+    # jck_pf_features: (N, 17, 128) with 9 = electron, 10 = muon
+    ELECTRON_IDX = 9
+    MUON_IDX     = 10
 
-# --- Slice after shuffling ---
-full_pf_features = full_pf_features[:howmanyjets]
-full_pf_vectors  = full_pf_vectors[:howmanyjets]
-full_pf_mask     = full_pf_mask[:howmanyjets]
-full_pf_points   = full_pf_points[:howmanyjets]
-full_labels      = full_labels[:howmanyjets]
-jc_kin_lepton_attention.eval()
-with torch.no_grad():
-    jck_y_pred= jc_kin_lepton_attention(torch.from_numpy(full_pf_points),torch.from_numpy(full_pf_features[:,0:7,:]),torch.from_numpy(full_pf_vectors),torch.from_numpy(full_pf_mask))
-jck_attention = jc_kin_lepton_attention.get_attention_matrix()
-jck_interaction = jc_kin_lepton_attention.get_interactionMatrix()
+    init_ratios = []
+    ratios = []
+    interactionval = []
+    totalval = []
 
-print('JC full done!')
+    # optional: collect raw “unclipped” ratio to illustrate the blow-up
+    raw_ratios = []
 
-jc_kin_padding = jc_kin_lepton_attention_hooks.cut_padding(jc_kin_lepton_attention_hooks.pre_softmax_attentions, full_pf_mask)
-jc_kin_init_padding = init_lepton_attention_hooks.cut_padding(init_lepton_attention_hooks.pre_softmax_attentions, full_pf_mask)
+    for li, x in enumerate(tqdm(attn, desc="Layers")):         # x: (N, H, 128, 128)
+        for ni, z in enumerate(x):                              # z: (H, 128, 128)
+            # muon/electron key columns for THIS SAMPLE
+            key_mask = (jc_full_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
+                        jc_full_pf_features[ni, MUON_IDX, :].astype(bool))
+            key_cols = np.flatnonzero(key_mask)
 
-import matplotlib.pyplot as plt
-import mplhep as hep
-plt.style.use(hep.style.ROOT)
+            for hi, y in enumerate(z):                          # y: (128, 128)
+                I = inter[li, ni, hi]
 
-attn = jc_kin_lepton_attention_hooks.pre_softmax_attentions.numpy()
-inter = jc_kin_lepton_attention_hooks.pre_softmax_interactions.numpy()
+                # for logging (matches your original spirit)
+                interactionval.append(np.nansum(I))
+                totalval.append(np.nansum(y))
 
-init_attn = init_lepton_attention_hooks.pre_softmax_attentions.numpy()
-init_inter = init_lepton_attention_hooks.pre_softmax_interactions.numpy()
+                # --- BAD (raw) definition that can explode (denom cancels to ~0) ---
+                raw_total = np.nansum(y + I)
+                raw_numer = np.nansum((y + I)[:, key_cols]) if key_cols.size else 0.0
+                raw_ratios.append(raw_numer / (raw_total + 1e-12))
 
-import numpy as np
-from tqdm.auto import tqdm
+                # --- GOOD bounded definition: use positive part of (attn + inter) ---
+                A_total = y + I
+                A_pos = np.clip(A_total, 0, None)
 
-# attn, inter: (L, N, H, 128, 128)
-# jck_pf_features: (N, 17, 128) with 9 = electron, 10 = muon
-ELECTRON_IDX = 9
-MUON_IDX     = 10
+                denom = np.nansum(A_pos)
+                if denom == 0 or key_cols.size == 0:
+                    ratios.append(0.0)
+                else:
+                    numer = np.nansum(A_pos[:, key_cols])
+                    ratios.append(numer / denom)
 
-init_ratios = []
-ratios = []
-interactionval = []
-totalval = []
+    # (optional) quick sanity checks
+    ratios = np.array(ratios, dtype=float)
+    raw_ratios = np.array(raw_ratios, dtype=float)
+    print("Bounded ratio min/max:", np.nanmin(ratios), np.nanmax(ratios))
+    print("Raw ratio min/max (can be >1):", np.nanmin(raw_ratios), np.nanmax(raw_ratios))
+    print("Frac of cases with near-zero raw denom:",
+        np.mean(np.isclose(raw_ratios * 0 + raw_numer, raw_numer) & (np.abs(raw_total) < 1e-8)))
 
-# optional: collect raw “unclipped” ratio to illustrate the blow-up
-raw_ratios = []
+    for li, x in enumerate(tqdm(init_attn, desc="Layers")):         # x: (N, H, 128, 128)
+        for ni, z in enumerate(x):                              # z: (H, 128, 128)
+            # muon/electron key columns for THIS SAMPLE
+            key_mask = (jc_full_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
+                        jc_full_pf_features[ni, MUON_IDX, :].astype(bool))
+            key_cols = np.flatnonzero(key_mask)
 
-for li, x in enumerate(tqdm(attn, desc="Layers")):         # x: (N, H, 128, 128)
-    for ni, z in enumerate(x):                              # z: (H, 128, 128)
-        # muon/electron key columns for THIS SAMPLE
-        key_mask = (full_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
-                    full_pf_features[ni, MUON_IDX, :].astype(bool))
-        key_cols = np.flatnonzero(key_mask)
+            for hi, y in enumerate(z):                          # y: (128, 128)
+                I = inter[li, ni, hi]
 
-        for hi, y in enumerate(z):                          # y: (128, 128)
-            I = inter[li, ni, hi]
+                # for logging (matches your original spirit)
+                interactionval.append(np.nansum(I))
+                totalval.append(np.nansum(y))
 
-            # for logging (matches your original spirit)
-            interactionval.append(np.nansum(I))
-            totalval.append(np.nansum(y))
+                # --- BAD (raw) definition that can explode (denom cancels to ~0) ---
+                raw_total = np.nansum(y + I)
+                raw_numer = np.nansum((y + I)[:, key_cols]) if key_cols.size else 0.0
+                #raw_ratios.append(raw_numer / (raw_total + 1e-12))
 
-            # --- BAD (raw) definition that can explode (denom cancels to ~0) ---
-            raw_total = np.nansum(y + I)
-            raw_numer = np.nansum((y + I)[:, key_cols]) if key_cols.size else 0.0
-            raw_ratios.append(raw_numer / (raw_total + 1e-12))
+                # --- GOOD bounded definition: use positive part of (attn + inter) ---
+                A_total = y + I
+                A_pos = np.clip(A_total, 0, None)
 
-            # --- GOOD bounded definition: use positive part of (attn + inter) ---
-            A_total = y + I
-            A_pos = np.clip(A_total, 0, None)
+                denom = np.nansum(A_pos)
+                if denom == 0 or key_cols.size == 0:
+                    init_ratios.append(0.0)
+                else:
+                    numer = np.nansum(A_pos[:, key_cols])
+                    init_ratios.append(numer / denom)
 
-            denom = np.nansum(A_pos)
-            if denom == 0 or key_cols.size == 0:
-                ratios.append(0.0)
-            else:
-                numer = np.nansum(A_pos[:, key_cols])
-                ratios.append(numer / denom)
+    # (optional) quick sanity checks
+    ratios = np.array(ratios, dtype=float)
+    raw_ratios = np.array(raw_ratios, dtype=float)
+    print("Bounded ratio min/max:", np.nanmin(ratios), np.nanmax(ratios))
+    print("Raw ratio min/max (can be >1):", np.nanmin(raw_ratios), np.nanmax(raw_ratios))
+    print("Frac of cases with near-zero raw denom:",
+        np.mean(np.isclose(raw_ratios * 0 + raw_numer, raw_numer) & (np.abs(raw_total) < 1e-8)))
 
-# (optional) quick sanity checks
-ratios = np.array(ratios, dtype=float)
-raw_ratios = np.array(raw_ratios, dtype=float)
-print("Bounded ratio min/max:", np.nanmin(ratios), np.nanmax(ratios))
-print("Raw ratio min/max (can be >1):", np.nanmin(raw_ratios), np.nanmax(raw_ratios))
-print("Frac of cases with near-zero raw denom:",
-      np.mean(np.isclose(raw_ratios * 0 + raw_numer, raw_numer) & (np.abs(raw_total) < 1e-8)))
+    #print('These are the ratios of attention to lepton / overall:')
+    #print(f'Model trained on JetClass Kinematic: {ratios}')
+    #print(f'Untrained Model: {init_ratios}')
 
-for li, x in enumerate(tqdm(init_attn, desc="Layers")):         # x: (N, H, 128, 128)
-    for ni, z in enumerate(x):                              # z: (H, 128, 128)
-        # muon/electron key columns for THIS SAMPLE
-        key_mask = (full_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
-                    full_pf_features[ni, MUON_IDX, :].astype(bool))
-        key_cols = np.flatnonzero(key_mask)
+    np.save(f'{chunk}leptonratiosUNTRAINED.npy', init_ratios)
+    np.save(f'{chunk}leptonratiosTRAINED.npy', ratios)
+    subprocess.run(['sudo', 'mv', f'{chunk}leptonratiosUNTRAINED.npy', storage_path])
+    subprocess.run(['sudo', 'mv', f'{chunk}leptonratiosTRAINED.npy', storage_path])
 
-        for hi, y in enumerate(z):                          # y: (128, 128)
-            I = inter[li, ni, hi]
-
-            # for logging (matches your original spirit)
-            interactionval.append(np.nansum(I))
-            totalval.append(np.nansum(y))
-
-            # --- BAD (raw) definition that can explode (denom cancels to ~0) ---
-            raw_total = np.nansum(y + I)
-            raw_numer = np.nansum((y + I)[:, key_cols]) if key_cols.size else 0.0
-            #raw_ratios.append(raw_numer / (raw_total + 1e-12))
-
-            # --- GOOD bounded definition: use positive part of (attn + inter) ---
-            A_total = y + I
-            A_pos = np.clip(A_total, 0, None)
-
-            denom = np.nansum(A_pos)
-            if denom == 0 or key_cols.size == 0:
-                init_ratios.append(0.0)
-            else:
-                numer = np.nansum(A_pos[:, key_cols])
-                init_ratios.append(numer / denom)
-
-# (optional) quick sanity checks
-ratios = np.array(ratios, dtype=float)
-raw_ratios = np.array(raw_ratios, dtype=float)
-print("Bounded ratio min/max:", np.nanmin(ratios), np.nanmax(ratios))
-print("Raw ratio min/max (can be >1):", np.nanmin(raw_ratios), np.nanmax(raw_ratios))
-print("Frac of cases with near-zero raw denom:",
-      np.mean(np.isclose(raw_ratios * 0 + raw_numer, raw_numer) & (np.abs(raw_total) < 1e-8)))
-
-#print('These are the ratios of attention to lepton / overall:')
-#print(f'Model trained on JetClass Kinematic: {ratios}')
-#print(f'Untrained Model: {init_ratios}')
-
-np.save('leptonratiosUNTRAINED.npy', init_ratios)
-np.save('leptonratiosTRAINED.npy', ratios)
-
-import numpy as np
-import matplotlib.pyplot as plt
+    print(f"Saved ratios for chunk {chunk} to {storage_path} - processed jets {counter} to {counter+howmanyjets}")
+    counter += howmanyjets
+    with open(counter_path, 'w') as f:
+        f.write(str(counter))
 
 # Load arrays
 untrained = np.load('leptonratiosUNTRAINED.npy')
@@ -2574,4 +2529,4 @@ ax.legend(fontsize=20)
 # Layout and save
 plt.tight_layout()
 plt.savefig('leptonAttention.pdf')
-plt.show()
+#plt.show()
