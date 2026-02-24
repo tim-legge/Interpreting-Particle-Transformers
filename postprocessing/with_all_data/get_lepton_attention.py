@@ -223,10 +223,10 @@ while counter < start_jet + (total_jets//num_chunks):
     #print(f'Model trained on JetClass Kinematic: {ratios}')
     #print(f'Untrained Model: {init_ratios}')
 
-    np.save(f'{chunk}leptonratiosUNTRAINED.npy', init_ratios)
-    np.save(f'{chunk}leptonratiosTRAINED.npy', ratios)
+    np.save(f'{chunk}leptonratiosUNTRAINED_{counter}_to_{counter+howmanyjets}.npy', init_ratios)
+    np.save(f'{chunk}leptonratiosTRAINED_{counter}_to_{counter+howmanyjets}.npy', ratios)
     subprocess.run(['sudo', 'mv', f'{chunk}leptonratiosUNTRAINED_{counter}_to_{counter+howmanyjets}.npy', storage_path])
-    subprocess.run(['sudo', 'mv', f'{chunk}leptonratiosTRAINED.npy', storage_path])
+    subprocess.run(['sudo', 'mv', f'{chunk}leptonratiosTRAINED_{counter}_to_{counter+howmanyjets}.npy', storage_path])
 
     print(f"Saved ratios for chunk {chunk} to {storage_path} - processed jets {counter} to {counter+howmanyjets}")
     counter += howmanyjets
