@@ -225,7 +225,7 @@ while counter < start_jet + (total_jets//num_chunks):
 
     np.save(f'{chunk}leptonratiosUNTRAINED.npy', init_ratios)
     np.save(f'{chunk}leptonratiosTRAINED.npy', ratios)
-    subprocess.run(['sudo', 'mv', f'{chunk}leptonratiosUNTRAINED_{counter}_to_{counter+howmany_jets}.npy', storage_path])
+    subprocess.run(['sudo', 'mv', f'{chunk}leptonratiosUNTRAINED_{counter}_to_{counter+howmanyjets}.npy', storage_path])
     subprocess.run(['sudo', 'mv', f'{chunk}leptonratiosTRAINED.npy', storage_path])
 
     print(f"Saved ratios for chunk {chunk} to {storage_path} - processed jets {counter} to {counter+howmanyjets}")
