@@ -230,9 +230,9 @@ while counter < start_jet + (total_jets//num_chunks):
 
     print(f"Saved ratios for chunk {chunk} to {storage_path} - processed jets {counter} to {counter+howmanyjets}")
     counter += howmanyjets
-    with open('counter', 'w') as f:
+    with open('counter.txt', 'w') as f:
         f.write(str(counter))
-    subprocess.run(['sudo', 'cp', 'counter', counter_path])
+    subprocess.run(['sudo', 'cp', 'counter.txt', counter_path])
 
 # Load arrays
 untrained = np.load('leptonratiosUNTRAINED.npy')
