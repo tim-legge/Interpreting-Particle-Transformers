@@ -42,6 +42,7 @@ import numpy as np
 from tqdm.auto import tqdm
 import subprocess
 import argparse
+import logging
 
 from model_utils import *
 
@@ -119,7 +120,7 @@ while counter < start_jet + (total_jets//num_chunks):
                                             torch.from_numpy(jc_pf_features[:,0:7,:]),
                                             torch.from_numpy(jc_pf_vectors),torch.from_numpy(jc_pf_mask))
 
-    print('JC full done!')
+    logging.info('JC inference done!')
 
     jc_kin_padding = jc_kin_lepton_attention_hooks.cut_padding(jc_kin_lepton_attention_hooks.pre_softmax_attentions, jc_pf_mask)
     jc_kin_init_padding = init_lepton_attention_hooks.cut_padding(init_lepton_attention_hooks.pre_softmax_attentions, jc_pf_mask)
@@ -230,6 +231,7 @@ while counter < start_jet + (total_jets//num_chunks):
     subprocess.run(['sudo', 'mv', trained_file, storage_path])
 
     print(f"Saved ratios for chunk {chunk} to {storage_path} - processed jets {counter} to {counter+howmanyjets}")
+    logging.info(f"Saved ratios for chunk {chunk} to {storage_path} - processed jets {counter} to {counter+howmanyjets}")
     counter += howmanyjets
     with open('counter.txt', 'w') as f:
         f.write(str(counter))
