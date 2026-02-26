@@ -87,6 +87,9 @@ else:
         counter = int(f.read().strip())
 
 jc_kin_lepton_attention = get_model('jck')
+model_path = '~/Interpreting-Particle-Transformers/models/ParT_kin.pt'
+jc_kin_lepton_attention.load_state_dict(torch.load(model_path, map_location='cpu'))
+init_lepton_attention = get_model('jck')
 
 jc_full_pf_features = np.load(dataset_path+'jc_full_2M_features_0.npy')
 jc_full_pf_vectors = np.load(dataset_path+'jc_full_2M_vectors.npy')
@@ -102,7 +105,6 @@ while counter < start_jet + (total_jets//num_chunks):
     jc_labels = jc_full_labels[counter:counter+howmanyjets]
 
     jc_kin_lepton_attention_hooks = Pre_Softmax_Hook(model=jc_kin_lepton_attention)
-    init_lepton_attention = get_model('jck')
     init_lepton_attention_hooks = Pre_Softmax_Hook(model=init_lepton_attention)
 
     init_lepton_attention.eval()
@@ -116,8 +118,6 @@ while counter < start_jet + (total_jets//num_chunks):
         jck_y_pred= jc_kin_lepton_attention(torch.from_numpy(jc_pf_points),
                                             torch.from_numpy(jc_pf_features[:,0:7,:]),
                                             torch.from_numpy(jc_pf_vectors),torch.from_numpy(jc_pf_mask))
-    jck_attention = jc_kin_lepton_attention.get_attention_matrix()
-    jck_interaction = jc_kin_lepton_attention.get_interactionMatrix()
 
     print('JC full done!')
 
