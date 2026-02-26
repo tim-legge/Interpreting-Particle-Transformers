@@ -87,7 +87,7 @@ else:
         counter = int(f.read().strip())
 
 jc_kin_lepton_attention = get_model('jck')
-model_path = '~/Interpreting-Particle-Transformers/models/ParT_kin.pt'
+model_path = '/home/jovyan/Interpreting-Particle-Transformers/models/ParT_kin.pt'
 jc_kin_lepton_attention.load_state_dict(torch.load(model_path, map_location='cpu'))
 init_lepton_attention = get_model('jck')
 
