@@ -70,7 +70,7 @@ assert class_to_analyze in ['Hqql', 'Tbl'], 'to get lepton attention plots, plea
 
 base_dir = '/moe-interpretability-pv/'
 
-howmanyjets = 500
+howmanyjets = 200
 
 dataset_path = base_dir+'datasets/'
 storage_path = base_dir+f'ParT_{class_to_analyze}_hists/'
