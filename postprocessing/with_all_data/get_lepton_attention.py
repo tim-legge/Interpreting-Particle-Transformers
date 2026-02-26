@@ -222,11 +222,12 @@ while counter < start_jet + (total_jets//num_chunks):
     #print('These are the ratios of attention to lepton / overall:')
     #print(f'Model trained on JetClass Kinematic: {ratios}')
     #print(f'Untrained Model: {init_ratios}')
-
-    np.save(f'{chunk}leptonratiosUNTRAINED_{counter}_to_{counter+howmanyjets}.npy', init_ratios)
-    np.save(f'{chunk}leptonratiosTRAINED_{counter}_to_{counter+howmanyjets}.npy', ratios)
-    subprocess.run(['sudo', 'mv', f'{chunk}leptonratiosUNTRAINED_{counter}_to_{counter+howmanyjets}.npy', storage_path])
-    subprocess.run(['sudo', 'mv', f'{chunk}leptonratiosTRAINED_{counter}_to_{counter+howmanyjets}.npy', storage_path])
+    untrained_file = f'leptonratiosUNTRAINED_{counter}_to_{counter+howmanyjets}.npy'
+    trained_file = f'leptonratiosTRAINED_{counter}_to_{counter+howmanyjets}.npy'
+    np.save(untrained_file, init_ratios)
+    np.save(trained_file, ratios)
+    subprocess.run(['sudo', 'mv', untrained_file, storage_path])
+    subprocess.run(['sudo', 'mv', trained_file, storage_path])
 
     print(f"Saved ratios for chunk {chunk} to {storage_path} - processed jets {counter} to {counter+howmanyjets}")
     counter += howmanyjets
@@ -234,9 +235,14 @@ while counter < start_jet + (total_jets//num_chunks):
         f.write(str(counter))
     subprocess.run(['sudo', 'cp', 'counter.txt', counter_path])
 
-# Load arrays
-untrained = np.load('leptonratiosUNTRAINED.npy')
-trained = np.load('leptonratiosTRAINED.npy')
+# collate all chunks for this class
+untrained = np.array([])
+trained = np.array([])
+for file in os.listdir(storage_path):
+    if file.startswith('leptonratiosUNTRAINED') and file.endswith('.npy'):
+        untrained = np.concatenate((untrained, np.load(os.path.join(storage_path, file))))
+    elif file.startswith('leptonratiosTRAINED') and file.endswith('.npy'):
+        trained = np.concatenate((trained, np.load(os.path.join(storage_path, file))))
 
 # Create figure
 fig, ax = plt.subplots(figsize=(6, 5), dpi=300)
@@ -261,4 +267,5 @@ ax.legend(fontsize=20)
 # Layout and save
 plt.tight_layout()
 plt.savefig('leptonAttention.pdf')
+subprocess.run(['sudo', 'mv', 'leptonAttention.pdf', storage_path])
 #plt.show()
