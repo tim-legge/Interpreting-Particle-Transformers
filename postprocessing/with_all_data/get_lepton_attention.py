@@ -105,6 +105,8 @@ while counter < start_jet + (total_jets//num_chunks):
     jc_pf_points = jc_full_pf_points[counter:counter+howmanyjets]
     jc_labels = jc_full_labels[counter:counter+howmanyjets]
 
+    assert jc_labels.shape[0] == howmanyjets, f"Expected {howmanyjets} jets, but got {jc_labels.shape[0]}"
+
     jc_kin_lepton_attention_hooks = Pre_Softmax_Hook(model=jc_kin_lepton_attention)
     init_lepton_attention_hooks = Pre_Softmax_Hook(model=init_lepton_attention)
 
