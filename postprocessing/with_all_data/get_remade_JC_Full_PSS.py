@@ -2377,20 +2377,20 @@ inter_abs = np.abs(flat_jc_full_inter[:min_len])
 
 # Avoid divide-by-zero and non-finite values
 mask = (inter_abs > 0) & np.isfinite(attn_abs) & np.isfinite(inter_abs)
-diff = attn_abs[mask] - inter_abs[mask]
+ratio = attn_abs[mask] / inter_abs[mask]
 
 # ---- Plot ----
 num_bins = 10
-weights = np.ones_like(diff) / diff.size  # bars sum to 1 across bins
+weights = np.ones_like(ratio) / ratio.size  # bars sum to 1 across bins
 
-bin_edges = [-np.inf, 0, 1, 10, 100, 1000, 10000, np.isinf]
+bin_edges = [0, 1, 10, 100, 1000, 10000, 100000, np.isinf]
 
 # ---- Histogram with probability normalization ----
-counts, edges = np.histogram(diff, bins=bin_edges)
+counts, edges = np.histogram(ratio, bins=bin_edges)
 probabilities = counts / counts.sum()
 
 # ---- Labels (must be length bins-1 = 6) ----
-labels = ["<0", "0–1", "1–10", "10–100", "100–1k", "1k–10k", "10k+"]
+labels = ["0–1", "1–10", "10–100", "100–1k", "1k–10k", "10k-100k", "100k+"]
 
 # ---- Plot ----
 fig, ax = plt.subplots(figsize=(8, 6), dpi=300)

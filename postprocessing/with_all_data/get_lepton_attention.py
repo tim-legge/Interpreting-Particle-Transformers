@@ -87,6 +87,8 @@ else:
     with open(counter_path, 'r') as f:
         counter = int(f.read().strip())
 
+subprocess.run(['sudo', 'chmod', '666', 'counter.txt'])
+
 jc_kin_lepton_attention = get_model('jck')
 model_path = '/home/jovyan/Interpreting-Particle-Transformers/models/ParT_kin.pt'
 jc_kin_lepton_attention.load_state_dict(torch.load(model_path, map_location='cpu'))
@@ -97,6 +99,8 @@ jc_full_pf_vectors = np.load(dataset_path+'jc_full_2M_vectors.npy')
 jc_full_pf_mask = np.load(dataset_path+'jc_full_2M_mask.npy')
 jc_full_pf_points = np.load(dataset_path+'jc_full_2M_points.npy')
 jc_full_labels = np.load(dataset_path+'jc_full_2M_labels.npy')
+
+print(f"Starting processing for chunk {chunk} of class {class_to_analyze} - jets {counter} to {counter+howmanyjets}")
 
 while counter < start_jet + (total_jets//num_chunks):
     jc_pf_features = jc_full_pf_features[counter:counter+howmanyjets]
