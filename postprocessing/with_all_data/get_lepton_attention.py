@@ -51,12 +51,14 @@ parser.add_argument('--class-to-analyze', '-a', type=str, help='Class to analyze
 parser.add_argument('--chunk', '-c', type=int, help='chunk number')
 parser.add_argument('--num-chunks', '-n', type=int, default=10, help='total number of chunks')
 parser.add_argument('--restart', '-r', action='store_true', help='Whether to restart the job from scratch, or continue from the last counter')
+parser.add_argument('--plot', '-p', action='store_true', help='To plot instead of run inference')
 args = parser.parse_args()
 
 class_to_analyze = args.class_to_analyze
 chunk = args.chunk
 num_chunks = args.num_chunks
 restart = args.restart
+plot_q = args.plot
 
 jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 
@@ -102,7 +104,7 @@ jc_full_labels = np.load(dataset_path+'jc_full_2M_labels.npy')
 
 print(f"Starting processing for chunk {chunk} of class {class_to_analyze} - jets {counter} to {counter+howmanyjets}")
 
-while counter < start_jet + (total_jets//num_chunks):
+while counter < start_jet + (total_jets//num_chunks) and not plot_q:
     jc_pf_features = jc_full_pf_features[counter:counter+howmanyjets]
     jc_pf_vectors = jc_full_pf_vectors[counter:counter+howmanyjets]
     jc_pf_mask = jc_full_pf_mask[counter:counter+howmanyjets]
