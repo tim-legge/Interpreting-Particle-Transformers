@@ -2311,3 +2311,106 @@ def get_model(model_type='qg',**kwargs):
     }
 
     return model
+
+
+def get_subjets(px, py, pz, e, N_SUBJETS=3, JET_ALGO="kt", jet_radius=0.8):
+    """
+    Declusters a jet into exactly N_SUBJETS using the JET_ALGO and jet_radius provided.
+
+    Args:
+        px [np.ndarray]: NumPy array of shape ``[num_particles]`` containing the px of each particle inside the jet
+        py [np.ndarray]: NumPy array of shape ``[num_particles]`` containing the py of each particle inside the jet
+        pz [np.ndarray]: NumPy array of shape ``[num_particles]`` containing the pz of each particle inside the jet
+        e [np.ndarray]: NumPy array of shape ``[num_particles]`` containing the e of each particle inside the jet
+        N_SUBJETS [int]: Number of subjets to decluster the jet into
+            (default is 3)
+        JET_ALGO [str]: The jet declustering algorithm to use. Choices are ["CA", "kt", "antikt"]
+            (default is "CA")
+        jet_radius [float]: The jet radius to use when declustering
+            (default is 0.8)
+
+    Returns:
+        subjet_idx [np.array]: NumPy array of shape ``[num_particles]`` with elements
+                                representing which subjet the particle belongs to
+        subjet_vectors [list]: includes bjet information (e.g. px, py, pz)
+
+    """
+    import awkward as ak
+    import fastjet
+    import vector
+
+    if JET_ALGO == "kt":
+        JET_ALGO = fastjet.kt_algorithm
+    elif JET_ALGO == "antikt":
+        JET_ALGO = fastjet.antikt_algorithm
+    elif JET_ALGO == "CA":
+        JET_ALGO = fastjet.cambridge_algorithm
+
+    jetdef = fastjet.JetDefinition(JET_ALGO, jet_radius)
+
+    # define jet directly not an array of jets
+    jet = ak.zip(
+        {
+            "px": px,
+            "py": py,
+            "pz": pz,
+            "E": e,
+        },
+        with_name="MomentumArray4D",
+    )
+
+    pseudojet = [
+        fastjet.PseudoJet(particle.px.item(), particle.py.item(), particle.pz.item(), particle.E.item()) for particle in jet
+    ]
+
+    cluster = fastjet.ClusterSequence(pseudojet, jetdef)
+
+    # cluster jets
+    jets = cluster.inclusive_jets()
+    print(len(jets))
+    #assert len(jets) == 1
+
+    # get the 3 exclusive jets
+    subjets = cluster.exclusive_subjets(jets[0], N_SUBJETS)
+    assert len(subjets) == N_SUBJETS
+
+    # sort by pt
+    subjets = sorted(subjets, key=lambda x: x.pt(), reverse=True)
+
+    # define a subjet_idx placeholder
+    subjet_idx = ak.zeros_like(px, dtype=int) - 1
+    mapping = subjet_idx.to_list()
+
+    subjet_indices = []
+    for subjet_idx, subjet in enumerate(subjets):
+        subjet_indices.append([])
+        for subjet_const in subjet.constituents():
+            for idx, jet_const in enumerate(pseudojet):
+                if (
+                    subjet_const.px() == jet_const.px()
+                    and subjet_const.py() == jet_const.py()
+                    and subjet_const.pz() == jet_const.pz()
+                    and subjet_const.E() == jet_const.E()
+                ):
+                    subjet_indices[-1].append(idx)
+
+
+    for subjet_idx, subjet in enumerate(subjets):
+        local_mapping = np.array(mapping)
+        local_mapping[subjet_indices[subjet_idx]] = subjet_idx
+        mapping = local_mapping
+
+    # add the jet index
+    jet["subjet_idx"] = ak.Array(mapping)
+
+    subjet_vectors = [
+        vector.obj(
+            px=ak.sum(jet.px[jet.subjet_idx == j], axis=-1),
+            py=ak.sum(jet.py[jet.subjet_idx == j], axis=-1),
+            pz=ak.sum(jet.pz[jet.subjet_idx == j], axis=-1),
+            E=ak.sum(jet.E[jet.subjet_idx == j], axis=-1),
+        )
+        for j in range(0, N_SUBJETS)
+    ]
+
+    return jet["subjet_idx"].to_numpy(), subjet_vectors

@@ -46,8 +46,8 @@ import logging
 
 from model_utils import *
 
-parser = argparse.ArgumentParser(description='Lepton job specs.')
-parser.add_argument('--class-to-analyze', '-a', type=str, help='Class to analyze (Hqql, Tbl)')
+parser = argparse.ArgumentParser(description='Subjet attention job specs.')
+parser.add_argument('--class-to-analyze', '-a', type=str, help='Class to analyze (H4q, Tbqq)')
 parser.add_argument('--chunk', '-c', type=int, help='chunk number')
 parser.add_argument('--num-chunks', '-n', type=int, default=10, help='total number of chunks')
 parser.add_argument('--restart', '-r', action='store_true', help='Whether to restart the job from scratch, or continue from the last counter')
@@ -65,15 +65,17 @@ jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
 
 classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
+subjets = [1, 2, 2, 2, 4, 3, 2, 2, 3, 2]
 start_indices = np.array([8, 0, 1, 2, 4, 3, 9, 7, 6, 5]) * 10000
 total_jets = 10000
 
 start_jet = counter = start_indices[classes.index(class_to_analyze)] + chunk*(total_jets//num_chunks)
+N_SUBJETS = subjets[classes.index(class_to_analyze)]
 assert class_to_analyze in ['Hqql', 'Tbl'], 'to get lepton attention plots, please specify class as Hqql or Tbl'
 
 base_dir = '/moe-interpretability-pv/'
 
-howmanyjets = 500
+howmanyjets = 1
 
 dataset_path = base_dir+'datasets/'
 storage_path = base_dir+f'ParT_{class_to_analyze}_hists/'
@@ -96,11 +98,11 @@ model_path = '/home/jovyan/Interpreting-Particle-Transformers/models/ParT_kin.pt
 jc_kin_lepton_attention.load_state_dict(torch.load(model_path, map_location='cpu'))
 init_lepton_attention = get_model('jck')
 
-jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')
-jc_full_pf_vectors = np.load(dataset_path+'jc_full_pf_vectors.npy')
-jc_full_pf_mask = np.load(dataset_path+'jc_full_pf_mask.npy')
-jc_full_pf_points = np.load(dataset_path+'jc_full_pf_points.npy')
-jc_full_labels = np.load(dataset_path+'jc_full_labels.npy')
+jc_full_pf_features = np.load(dataset_path+'jc_full_2M_features_0.npy')
+jc_full_pf_vectors = np.load(dataset_path+'jc_full_2M_vectors.npy')
+jc_full_pf_mask = np.load(dataset_path+'jc_full_2M_mask.npy')
+jc_full_pf_points = np.load(dataset_path+'jc_full_2M_points.npy')
+jc_full_labels = np.load(dataset_path+'jc_full_2M_labels.npy')
 
 print(f"Starting processing for chunk {chunk} of class {class_to_analyze} - jets {counter} to {counter+howmanyjets}")
 
@@ -149,11 +151,19 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
     interactionval = []
     totalval = []
 
-    # optional: collect raw “unclipped” ratio to illustrate the blow-up
-    raw_ratios = []
-
     for li, x in enumerate(tqdm(attn, desc="Layers")):         # x: (N, H, 128, 128)
         for ni, z in enumerate(x):                              # z: (H, 128, 128)
+            # Extract the 4-momentum components for the valid particles
+            px = jc_pf_vectors[ni][0][0:jc_kin_padding[ni]]
+            py = jc_pf_vectors[ni][1][0:jc_kin_padding[ni]]
+            pz = jc_pf_vectors[ni][2][0:jc_kin_padding[ni]]
+            e = jc_pf_vectors[ni][3][0:jc_kin_padding[ni]]
+            
+            # Get the subjets using the get_subjets function
+
+            subjets, subjet_vectors = get_subjets(px, py, pz, e, N_SUBJETS=N_SUBJETS, JET_ALGO="kt")
+            print(subjets)
+
             # muon/electron key columns for THIS SAMPLE
             key_mask = (jc_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
                         jc_pf_features[ni, MUON_IDX, :].astype(bool))
@@ -166,11 +176,6 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                 interactionval.append(np.nansum(I))
                 totalval.append(np.nansum(y))
 
-                # --- BAD (raw) definition that can explode (denom cancels to ~0) ---
-                raw_total = np.nansum(y + I)
-                raw_numer = np.nansum((y + I)[:, key_cols]) if key_cols.size else 0.0
-                raw_ratios.append(raw_numer / (raw_total + 1e-12))
-
                 # --- GOOD bounded definition: use positive part of (attn + inter) ---
                 A_total = y + I
                 A_pos = np.clip(A_total, 0, None)
@@ -181,14 +186,6 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                 else:
                     numer = np.nansum(A_pos[:, key_cols])
                     ratios.append(numer / denom)
-
-    # (optional) quick sanity checks
-    ratios = np.array(ratios, dtype=float)
-    raw_ratios = np.array(raw_ratios, dtype=float)
-    #print("Bounded ratio min/max:", np.nanmin(ratios), np.nanmax(ratios))
-    #print("Raw ratio min/max (can be >1):", np.nanmin(raw_ratios), np.nanmax(raw_ratios))
-    #print("Frac of cases with near-zero raw denom:",
-    #    np.mean(np.isclose(raw_ratios * 0 + raw_numer, raw_numer) & (np.abs(raw_total) < 1e-8)))
 
     for li, x in enumerate(tqdm(init_attn, desc="Layers")):         # x: (N, H, 128, 128)
         for ni, z in enumerate(x):                              # z: (H, 128, 128)
@@ -203,11 +200,6 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                 # for logging (matches your original spirit)
                 interactionval.append(np.nansum(I))
                 totalval.append(np.nansum(y))
-
-                # --- BAD (raw) definition that can explode (denom cancels to ~0) ---
-                raw_total = np.nansum(y + I)
-                raw_numer = np.nansum((y + I)[:, key_cols]) if key_cols.size else 0.0
-                #raw_ratios.append(raw_numer / (raw_total + 1e-12))
 
                 # --- GOOD bounded definition: use positive part of (attn + inter) ---
                 A_total = y + I

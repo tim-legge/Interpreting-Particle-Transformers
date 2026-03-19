@@ -2345,13 +2345,13 @@ jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
 import sys
 
 decay_type = sys.argv[1]
-jet_idx = int(sys.argv[2]) if len(sys.argv) > 2 else 0
+start_jet = 30000
 classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
 subjets = [1, 2, 2, 2, 4, 3, 2, 2, 3, 2]
 if decay_type not in classes:
     raise ValueError(f"Decay type {decay_type} not recognized. Must be one of {classes}.")
-start_jet = 0
-howmanyjets = jet_idx
+howmanyjets = 10
+jet_idx = 0
 found_desired_jets = False
 
 qgtrained_modelpath = './models/on-qg-run2_best_epoch_state.pt'
