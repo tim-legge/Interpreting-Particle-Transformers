@@ -182,7 +182,8 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                 # mask attention matrix to each subjet
                 A_total_subjet = np.zeros(N_SUBJETS)
                 for si in range(N_SUBJETS):
-                    A_subjet = A_pos[:jc_kin_padding[ni], :jc_kin_padding[ni]] * (subjets_mask[:,si][:,None] * subjets_mask[:,si][None,:])
+                    A_subjet = A_pos[:jc_kin_padding[ni], :jc_kin_padding[ni]][subjets_mask[:,si]][:,subjets_mask[:,si]]
+        
                     # attention within the subjet
                     A_total_subjet[si] = np.nansum(A_subjet)
                 
