@@ -75,7 +75,7 @@ assert class_to_analyze in ['H4q', 'Tbqq'], 'to get lepton attention plots, plea
 
 base_dir = '/moe-interpretability-pv/'
 
-howmanyjets = 1
+howmanyjets = 500
 
 dataset_path = base_dir+'datasets/'
 storage_path = base_dir+f'ParT_{class_to_analyze}_hists/'
@@ -102,7 +102,7 @@ jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')
 jc_full_pf_vectors = np.load(dataset_path+'jc_full_pf_vectors.npy')
 jc_full_pf_mask = np.load(dataset_path+'jc_full_pf_mask.npy')
 jc_full_pf_points = np.load(dataset_path+'jc_full_pf_points.npy')
-jc_full_labels = np.load(dataset_path+'jc_full_pf_labels.npy')
+jc_full_labels = np.load(dataset_path+'jc_full_labels.npy')
 
 print(f"Starting processing for chunk {chunk} of class {class_to_analyze} - jets {counter} to {counter+howmanyjets}")
 
@@ -160,7 +160,6 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
             # Get the subjets using the get_subjets function
 
             subjets, subjet_vectors = get_subjets(px, py, pz, e, N_SUBJETS=N_SUBJETS, JET_ALGO="kt")
-            print(subjets)
 
             # muon/electron key columns for THIS SAMPLE
             #key_mask = (jc_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
@@ -181,9 +180,9 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                 A_pos = np.clip(A_total, 0, None)
 
                 # mask attention matrix to each subjet
-                A_total_subjet = np.zeros_like(N_SUBJETS)
+                A_total_subjet = np.zeros(N_SUBJETS)
                 for si in range(N_SUBJETS):
-                    A_subjet = A_pos * subjets_mask[:,si][:,None] * subjets_mask[:,si][None,:]
+                    A_subjet = A_pos[:jc_kin_padding[ni], :jc_kin_padding[ni]] * (subjets_mask[:,si][:,None] * subjets_mask[:,si][None,:])
                     # attention within the subjet
                     A_total_subjet[si] = np.nansum(A_subjet)
                 
@@ -208,7 +207,6 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
             # Get the subjets using the get_subjets function
 
             subjets, subjet_vectors = get_subjets(px, py, pz, e, N_SUBJETS=N_SUBJETS, JET_ALGO="kt")
-            print(subjets)
 
             # muon/electron key columns for THIS SAMPLE
             #key_mask = (jc_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
@@ -229,9 +227,9 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                 A_pos = np.clip(A_total, 0, None)
 
                 # mask attention matrix to each subjet
-                A_total_subjet = np.zeros_like(N_SUBJETS)
+                A_total_subjet = np.zeros(N_SUBJETS)
                 for si in range(N_SUBJETS):
-                    A_subjet = A_pos * subjets_mask[:,si][:,None] * subjets_mask[:,si][None,:]
+                    A_subjet = A_pos[:jc_kin_padding[ni], :jc_kin_padding[ni]] * (subjets_mask[:,si][:,None] * subjets_mask[:,si][None,:])
                     # attention within the subjet
                     A_total_subjet[si] = np.nansum(A_subjet)
                 
@@ -244,14 +242,6 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                 else:
                     numer = attn_between_subjets
                     init_ratios.append(numer / denom)
-
-    # (optional) quick sanity checks
-    ratios = np.array(ratios, dtype=float)
-    raw_ratios = np.array(raw_ratios, dtype=float)
-    #print("Bounded ratio min/max:", np.nanmin(ratios), np.nanmax(ratios))
-    #print("Raw ratio min/max (can be >1):", np.nanmin(raw_ratios), np.nanmax(raw_ratios))
-    #print("Frac of cases with near-zero raw denom:",
-    #    np.mean(np.isclose(raw_ratios * 0 + raw_numer, raw_numer) & (np.abs(raw_total) < 1e-8)))
 
     #print('These are the ratios of attention to lepton / overall:')
     #print(f'Model trained on JetClass Kinematic: {ratios}')

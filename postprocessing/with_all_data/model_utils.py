@@ -2029,20 +2029,6 @@ class Pre_Softmax_Hook:
             handle_inter = module.register_forward_hook(lambda *args, **kwargs: Pre_Softmax_Hook.get_pre_softmax_interaction(self, *args, **kwargs))
 
             print(f"Registered hook onto module")
-        #else:
-        #    print(f'A Layer does not match')
-
-        # for now, we will not register hooks on class blocks
-        # would not be too terribly difficult to implement, but it is not really the focus of current experiment
-
-        #for module in self.model.cls_blocks:
-            #if layer_name in name:
-                # register forward hook function - no interaction in class blocks
-            #cls_handle_attn = module.register_forward_hook(lambda *args, **kwargs: Pre_Softmax_Hook.get_pre_softmax_attention(self, *args, **kwargs))
-            
-            #print(f"Registered hook onto module")
-        #else:
-        #    print(f'Layer {module} does not match {layer_name}')
 
         self.handle_attn = handle_attn
         self.handle_inter = handle_inter
@@ -2055,12 +2041,8 @@ class Pre_Softmax_Hook:
         self.pre_softmax_attentions = torch.empty((0, self.num_heads, self.seq_len, self.seq_len), dtype=torch.float32)
         self.pre_softmax_interactions = torch.empty((0, self.num_heads, self.seq_len, self.seq_len), dtype=torch.float32)
 
-    # hooks will grab from the outputs of Block
-    # meaning we don't need to modify forward methods for anything else
-    # 3 hours later -- lol this was wrong
-
     def get_pre_softmax_attention(self, module, input, output):
-        print('Getting pre_softmax attention...')
+        #print('Getting pre_softmax attention...')
 
         # handle batching - we will divide 1st dimension by the number such that it will comport with num_heads
         #print(f'Got shape:{output[1].shape}')
@@ -2077,11 +2059,9 @@ class Pre_Softmax_Hook:
             self.pre_softmax_attentions = torch.empty((0, output_hooked.shape[0]//self.num_heads, self.num_heads, output_unsqueezed.shape[3], output_unsqueezed.shape[4]), dtype=torch.float32)
 
         self.pre_softmax_attentions = torch.cat((self.pre_softmax_attentions, output_unsqueezed), dim=0)
-        
-        #self.sorted_attentions = self.sort(self.pre_softmax_attentions)
-
+    
     def get_pre_softmax_interaction(self, module, input, output):
-        print('Getting pre-softmax interaction...')
+        #print('Getting pre-softmax interaction...')
 
         # handle batching - we will divide 1st dimension by the number such that it will comport with num_heads
         #print(f'Got shape:{output[2].shape}')
@@ -2089,11 +2069,6 @@ class Pre_Softmax_Hook:
         output_split = output_hooked.view(output_hooked.shape[0]//self.num_heads, self.num_heads, output_hooked.shape[1], output_hooked.shape[2])
         output_unsqueezed = output_split.unsqueeze(dim=0)
     
-        #print('Split the output into heads.\nNew Tensor Shapes:')
-        #print(f'{output_split[0].shape}')
-
-        # set correct number of particles for cat
-
         if self.pre_softmax_interactions.shape[0] == 0:
             self.pre_softmax_interactions = torch.empty((0, output_hooked.shape[0]//self.num_heads, self.num_heads, output_unsqueezed.shape[3], output_unsqueezed.shape[4]), dtype=torch.float32)
 
@@ -2117,21 +2092,6 @@ class Pre_Softmax_Hook:
         tensor_as_np = np.split(tensor_as_np, indices_or_sections=num_jets, axis=0) # now listed by layer -> (jet_num, head, jet_length, jet_length)
 
         return tensor_as_np
-
-    #def padded(self, tensor, mask):
-    #    '''
-    #    Supplementary method to pad a 
-    #    '''
-    #     padding_limits = []
-
-        # 
-
-    #    for jet_idx, jet in enumerate(tensor_as_np):
-    #        padding_limit = np.sum(mask[jet_idx]).astype(int)
-    #        padding_limits.append(padding_limit)
-    #        tensor_as_np[jet_idx] = tensor_as_np[jet_idx][:,:,:padding_limit, :padding_limit]
-        
-    #    print(f'Padding Limit: {padding_limits}')
 
     def cut_padding(self, tensor, mask):
         '''
@@ -2367,7 +2327,7 @@ def get_subjets(px, py, pz, e, N_SUBJETS=3, JET_ALGO="kt", jet_radius=0.8):
 
     # cluster jets
     jets = cluster.inclusive_jets()
-    print(len(jets))
+    #print(len(jets))
     #assert len(jets) == 1
 
     # get the 3 exclusive jets
