@@ -71,7 +71,7 @@ total_jets = 10000
 
 start_jet = counter = start_indices[classes.index(class_to_analyze)] + chunk*(total_jets//num_chunks)
 N_SUBJETS = subjets[classes.index(class_to_analyze)]
-assert class_to_analyze in ['Hqql', 'Tbl'], 'to get lepton attention plots, please specify class as Hqql or Tbl'
+assert class_to_analyze in ['H4q', 'Tbqq'], 'to get lepton attention plots, please specify class as Hqql or Tbl'
 
 base_dir = '/moe-interpretability-pv/'
 
@@ -98,11 +98,11 @@ model_path = '/home/jovyan/Interpreting-Particle-Transformers/models/ParT_kin.pt
 jc_kin_lepton_attention.load_state_dict(torch.load(model_path, map_location='cpu'))
 init_lepton_attention = get_model('jck')
 
-jc_full_pf_features = np.load(dataset_path+'jc_full_2M_features_0.npy')
-jc_full_pf_vectors = np.load(dataset_path+'jc_full_2M_vectors.npy')
-jc_full_pf_mask = np.load(dataset_path+'jc_full_2M_mask.npy')
-jc_full_pf_points = np.load(dataset_path+'jc_full_2M_points.npy')
-jc_full_labels = np.load(dataset_path+'jc_full_2M_labels.npy')
+jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')
+jc_full_pf_vectors = np.load(dataset_path+'jc_full_pf_vectors.npy')
+jc_full_pf_mask = np.load(dataset_path+'jc_full_pf_mask.npy')
+jc_full_pf_points = np.load(dataset_path+'jc_full_pf_points.npy')
+jc_full_labels = np.load(dataset_path+'jc_full_pf_labels.npy')
 
 print(f"Starting processing for chunk {chunk} of class {class_to_analyze} - jets {counter} to {counter+howmanyjets}")
 
@@ -143,8 +143,6 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
 
     # attn, inter: (L, N, H, 128, 128)
     # jck_pf_features: (N, 17, 128) with 9 = electron, 10 = muon
-    ELECTRON_IDX = 9
-    MUON_IDX     = 10
 
     init_ratios = []
     ratios = []
@@ -165,9 +163,11 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
             print(subjets)
 
             # muon/electron key columns for THIS SAMPLE
-            key_mask = (jc_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
-                        jc_pf_features[ni, MUON_IDX, :].astype(bool))
-            key_cols = np.flatnonzero(key_mask)
+            #key_mask = (jc_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
+            #            jc_pf_features[ni, MUON_IDX, :].astype(bool))
+            subjets_mask = np.empty((jc_kin_padding[ni],N_SUBJETS), dtype=bool)
+            for si in range(N_SUBJETS):
+                subjets_mask[:,si] = np.where((si == subjets), True, False)
 
             for hi, y in enumerate(z):                          # y: (128, 128)
                 I = inter[li, ni, hi]
@@ -180,22 +180,45 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                 A_total = y + I
                 A_pos = np.clip(A_total, 0, None)
 
+                # mask attention matrix to each subjet
+                A_total_subjet = np.zeros_like(N_SUBJETS)
+                for si in range(N_SUBJETS):
+                    A_subjet = A_pos * subjets_mask[:,si][:,None] * subjets_mask[:,si][None,:]
+                    # attention within the subjet
+                    A_total_subjet[si] = np.nansum(A_subjet)
+                
+                # Attention between subjets is then A_pos - sum(A_total_subjet), and we can log that separately if desired
+                attn_between_subjets = np.nansum(A_pos) - np.nansum(A_total_subjet)
+
                 denom = np.nansum(A_pos)
-                if denom == 0 or key_cols.size == 0:
+                if denom == 0:
                     ratios.append(0.0)
                 else:
-                    numer = np.nansum(A_pos[:, key_cols])
+                    numer = attn_between_subjets
                     ratios.append(numer / denom)
 
     for li, x in enumerate(tqdm(init_attn, desc="Layers")):         # x: (N, H, 128, 128)
         for ni, z in enumerate(x):                              # z: (H, 128, 128)
+            # Extract the 4-momentum components for the valid particles
+            px = jc_pf_vectors[ni][0][0:jc_kin_padding[ni]]
+            py = jc_pf_vectors[ni][1][0:jc_kin_padding[ni]]
+            pz = jc_pf_vectors[ni][2][0:jc_kin_padding[ni]]
+            e = jc_pf_vectors[ni][3][0:jc_kin_padding[ni]]
+            
+            # Get the subjets using the get_subjets function
+
+            subjets, subjet_vectors = get_subjets(px, py, pz, e, N_SUBJETS=N_SUBJETS, JET_ALGO="kt")
+            print(subjets)
+
             # muon/electron key columns for THIS SAMPLE
-            key_mask = (jc_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
-                        jc_pf_features[ni, MUON_IDX, :].astype(bool))
-            key_cols = np.flatnonzero(key_mask)
+            #key_mask = (jc_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
+            #            jc_pf_features[ni, MUON_IDX, :].astype(bool))
+            subjets_mask = np.empty((jc_kin_padding[ni],N_SUBJETS), dtype=bool)
+            for si in range(N_SUBJETS):
+                subjets_mask[:,si] = np.where((si == subjets), True, False)
 
             for hi, y in enumerate(z):                          # y: (128, 128)
-                I = inter[li, ni, hi]
+                I = init_inter[li, ni, hi]
 
                 # for logging (matches your original spirit)
                 interactionval.append(np.nansum(I))
@@ -205,11 +228,21 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                 A_total = y + I
                 A_pos = np.clip(A_total, 0, None)
 
+                # mask attention matrix to each subjet
+                A_total_subjet = np.zeros_like(N_SUBJETS)
+                for si in range(N_SUBJETS):
+                    A_subjet = A_pos * subjets_mask[:,si][:,None] * subjets_mask[:,si][None,:]
+                    # attention within the subjet
+                    A_total_subjet[si] = np.nansum(A_subjet)
+                
+                # Attention between subjets is then A_pos - sum(A_total_subjet), and we can log that separately if desired
+                attn_between_subjets = np.nansum(A_pos) - np.nansum(A_total_subjet)
+
                 denom = np.nansum(A_pos)
-                if denom == 0 or key_cols.size == 0:
+                if denom == 0:
                     init_ratios.append(0.0)
                 else:
-                    numer = np.nansum(A_pos[:, key_cols])
+                    numer = attn_between_subjets
                     init_ratios.append(numer / denom)
 
     # (optional) quick sanity checks
@@ -223,8 +256,8 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
     #print('These are the ratios of attention to lepton / overall:')
     #print(f'Model trained on JetClass Kinematic: {ratios}')
     #print(f'Untrained Model: {init_ratios}')
-    untrained_file = f'leptonratiosUNTRAINED_{counter}_to_{counter+howmanyjets}.npy'
-    trained_file = f'leptonratiosTRAINED_{counter}_to_{counter+howmanyjets}.npy'
+    untrained_file = f'subjetratiosUNTRAINED_{counter}_to_{counter+howmanyjets}.npy'
+    trained_file = f'subjetratiosTRAINED_{counter}_to_{counter+howmanyjets}.npy'
     np.save(untrained_file, init_ratios)
     np.save(trained_file, ratios)
     subprocess.run(['sudo', 'mv', untrained_file, storage_path])
@@ -250,13 +283,13 @@ for file in os.listdir(storage_path):
 fig, ax = plt.subplots(figsize=(6, 5), dpi=300)
 
 # Plot histograms as outlines only
-ax.hist(untrained, bins=20, density=True, histtype='step',
+ax.hist(untrained, bins=50, density=True, histtype='step',
         linewidth=2, label="Untrained")
-ax.hist(trained, bins=20, density=True, histtype='step',
+ax.hist(trained, bins=50, density=True, histtype='step',
         linewidth=2, label="Trained")
 
 # Labels and formatting
-ax.set_xlabel("Proportion of attention to Lepton", fontsize=20)
+ax.set_xlabel("Proportion of attention between subjets", fontsize=20)
 ax.set_ylabel("Probability", fontsize=20)
 ax.set_yscale('log')
 
@@ -268,6 +301,6 @@ ax.legend(fontsize=20)
 
 # Layout and save
 plt.tight_layout()
-plt.savefig('leptonAttention.pdf')
-subprocess.run(['sudo', 'mv', 'leptonAttention.pdf', storage_path])
+plt.savefig(f'subjetAttention_{class_to_analyze}.pdf')
+subprocess.run(['sudo', 'mv', f'subjetAttention_{class_to_analyze}.pdf', storage_path])
 #plt.show()
