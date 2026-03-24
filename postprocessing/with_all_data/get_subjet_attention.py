@@ -265,9 +265,9 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
 untrained = np.array([])
 trained = np.array([])
 for file in os.listdir(storage_path):
-    if file.startswith('leptonratiosUNTRAINED') and file.endswith('.npy'):
+    if file.startswith('subjetratiosUNTRAINED') and file.endswith('.npy'):
         untrained = np.concatenate((untrained, np.load(os.path.join(storage_path, file))))
-    elif file.startswith('leptonratiosTRAINED') and file.endswith('.npy'):
+    elif file.startswith('subjetratiosTRAINED') and file.endswith('.npy'):
         trained = np.concatenate((trained, np.load(os.path.join(storage_path, file))))
 
 # Create figure
