@@ -68,7 +68,7 @@ jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
 
 classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
 subjets = [1, 2, 2, 2, 4, 3, 2, 2, 3, 2]
-start_indices = np.array([8, 0, 1, 2, 4, 3, 9, 7, 6, 5]) * 10000
+start_indices = np.array([8, 0, 1, 2, 4, 3, 9, 7, 6, 5]) * 10000 # start indices of each class in 100k dataset
 total_jets = 10000
 
 start_jet = counter = start_indices[classes.index(class_to_analyze)] + chunk*(total_jets//num_chunks)
@@ -103,7 +103,10 @@ init_lepton_attention = get_model('jck')
 zero_u_jc_kin = get_model('jck')
 zero_u_jc_kin.load_state_dict(torch.load(zero_u_model_path, map_location='cpu'))
 
-jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')
+kin_slice = np.array([1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1], dtype=bool)
+kinpid_slice = np.array([1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1], dtype=bool)
+
+jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')[:,kin_slice,:]
 jc_full_pf_vectors = np.load(dataset_path+'jc_full_pf_vectors.npy')
 jc_full_pf_mask = np.load(dataset_path+'jc_full_pf_mask.npy')
 jc_full_pf_points = np.load(dataset_path+'jc_full_pf_points.npy')
@@ -112,12 +115,13 @@ jc_full_labels = np.load(dataset_path+'jc_full_labels.npy')
 print(f"Starting processing for chunk {chunk} of class {class_to_analyze} - jets {counter} to {counter+howmanyjets}")
 
 while counter < start_jet + (total_jets//num_chunks) and not plot_q:
+    jc_pf_features = jc_full_pf_features[counter:counter+howmanyjets]
+    jc_pf_vectors = jc_full_pf_vectors[counter:counter+howmanyjets]
+    jc_pf_mask = jc_full_pf_mask[counter:counter+howmanyjets]
+    jc_pf_points = jc_full_pf_points[counter:counter+howmanyjets]
+    jc_labels = jc_full_labels[counter:counter+howmanyjets]
+
     if not zero_u_only:
-        jc_pf_features = jc_full_pf_features[counter:counter+howmanyjets]
-        jc_pf_vectors = jc_full_pf_vectors[counter:counter+howmanyjets]
-        jc_pf_mask = jc_full_pf_mask[counter:counter+howmanyjets]
-        jc_pf_points = jc_full_pf_points[counter:counter+howmanyjets]
-        jc_labels = jc_full_labels[counter:counter+howmanyjets]
 
         assert jc_labels.shape[0] == howmanyjets, f"Expected {howmanyjets} jets, but got {jc_labels.shape[0]}"
 
@@ -127,13 +131,13 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
         init_lepton_attention.eval()
         with torch.no_grad():
             init_pred = init_lepton_attention(torch.from_numpy(jc_pf_points),
-                                        torch.from_numpy(jc_pf_features[:,0:7,:]),
+                                        torch.from_numpy(jc_pf_features),
                                         torch.from_numpy(jc_pf_vectors),torch.from_numpy(jc_pf_mask))
 
         jc_kin_lepton_attention.eval()
         with torch.no_grad():
             jck_y_pred= jc_kin_lepton_attention(torch.from_numpy(jc_pf_points),
-                                                torch.from_numpy(jc_pf_features[:,0:7,:]),
+                                                torch.from_numpy(jc_pf_features),
                                                 torch.from_numpy(jc_pf_vectors),torch.from_numpy(jc_pf_mask))
 
         logging.info('JC inference done!')
@@ -251,26 +255,33 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                         numer = attn_between_subjets
                         init_ratios.append(numer / denom)
         
-        untrained_file = f'subjetratiosUNTRAINED_{counter}_to_{counter+howmanyjets}.npy'
-        trained_file = f'subjetratiosTRAINED_{counter}_to_{counter+howmanyjets}.npy'
+        untrained_file = f'testsubjetratiosUNTRAINED_{counter}_to_{counter+howmanyjets}.npy'
+        trained_file = f'testsubjetratiosTRAINED_{counter}_to_{counter+howmanyjets}.npy'
         np.save(untrained_file, init_ratios)
         np.save(trained_file, ratios)
         subprocess.run(['sudo', 'mv', untrained_file, storage_path])
         subprocess.run(['sudo', 'mv', trained_file, storage_path])
 
     else:
-        zero_u_jc_kin_padding = zero_u_jc_kin_hooks.cut_padding(zero_u_jc_kin_hooks.pre_softmax_attentions, jc_pf_mask)
         zero_u_jc_kin_hooks = Pre_Softmax_Hook(model=zero_u_jc_kin)
 
         zero_u_jc_kin.eval()
         with torch.no_grad():
             zero_u_jck_y_pred= zero_u_jc_kin(torch.from_numpy(jc_pf_points),
-                                                torch.from_numpy(jc_pf_features[:,0:7,:]),
+                                                torch.from_numpy(jc_pf_features),
                                                 torch.from_numpy(jc_pf_vectors),torch.from_numpy(jc_pf_mask))
         
+        jc_kin_padding = zero_u_jc_kin_hooks.cut_padding(zero_u_jc_kin_hooks.pre_softmax_attentions, jc_pf_mask)
+
         zero_u_attn = zero_u_jc_kin_hooks.pre_softmax_attentions.numpy()
         zero_u_inter = zero_u_jc_kin_hooks.pre_softmax_interactions.numpy()
-
+        
+        init_ratios = []
+        ratios = []
+        zero_u_ratios = []
+        interactionval = []
+        totalval = []
+        print(zero_u_attn.shape)
         for li, x in enumerate(tqdm(zero_u_attn, desc="Layers")):         # x: (N, H, 128, 128)
             for ni, z in enumerate(x):                              # z: (H, 128, 128)
                 # Extract the 4-momentum components for the valid particles
@@ -339,12 +350,12 @@ untrained = np.array([])
 trained = np.array([])
 zero_u = np.array([])
 for file in os.listdir(storage_path):
-    if file.startswith('subjetratiosUNTRAINED') and file.endswith('.npy'):
+    if file.startswith('testsubjetratiosUNTRAINED') and file.endswith('.npy'):
         untrained = np.concatenate((untrained, np.load(os.path.join(storage_path, file))))
-    elif file.startswith('subjetratiosTRAINED') and file.endswith('.npy'):
+    elif file.startswith('testsubjetratiosTRAINED') and file.endswith('.npy'):
         trained = np.concatenate((trained, np.load(os.path.join(storage_path, file))))
-    elif file.startswith('subjetratiosZERO_U') and file.endswith('.npy'):
-        zero_u = np.concatenate((zero_u, np.load(os.path.join(storage_path, file))))
+#    elif file.startswith('subjetratiosZERO_U') and file.endswith('.npy'):
+#        zero_u = np.concatenate((zero_u, np.load(os.path.join(storage_path, file))))
 
 # Create figure
 fig, ax = plt.subplots(figsize=(6, 5), dpi=300)
@@ -354,8 +365,8 @@ ax.hist(untrained, bins=50, density=True, histtype='step',
         linewidth=2, label="Untrained")
 ax.hist(trained, bins=50, density=True, histtype='step',
         linewidth=2, label="Trained")
-ax.hist(zero_u, bins=50, density=True, histtype='step',
-        linewidth=2, label="Zeroed U")
+#ax.hist(zero_u, bins=50, density=True, histtype='step',
+#        linewidth=2, label="Zeroed U")
 
 # Labels and formatting
 ax.set_xlabel("Proportion of attention between subjets", fontsize=20)
