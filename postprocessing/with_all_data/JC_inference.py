@@ -45,8 +45,7 @@ model_type = args.model_type
 model_name = args.model_name
 chunk = args.chunk
 num_chunks = args.num_chunks
-balanced = args.balanced
-balanced_step = args.balanced_step
+balanced = args.random
 classes_to_process = args.classes
 save_predictions = args.save_predictions
 only_attention = args.only_attention
@@ -56,11 +55,11 @@ model_path = f'./models/{model_name}'
 
 base_dir = '/moe-interpretability-pv/'
 
-howmanyjets = 500
+howmanyjets = 1000
 
 dataset_path = base_dir+'datasets/'
 # Create balanced or standard suffix for storage path
-balanced_suffix = f'_balanced_step{balanced_step}' if balanced else ''
+balanced_suffix = f'_balanced' if balanced else ''
 storage_path = base_dir+f'{model_name.replace(".pt", "")}_output{balanced_suffix}/'
 
 # Create class-specific counter file
@@ -139,7 +138,7 @@ if balanced:
         counter = start_jet
 
 print(f'Processing {len(classes_to_process)} classes: {classes_to_process}')
-print(f'Balanced sampling: {balanced} (step={balanced_step if balanced else "N/A"})')
+print(f'Balanced sampling: {balanced}')
 print(f'Starting inference from jet {counter} in chunk {chunk}')
 
 # Main inference loop
@@ -175,9 +174,10 @@ while counter < chunk_end:
     # Save predictions if requested
     if save_predictions:
         predictions_np = predictions.numpy()
-        pred_file = f'{storage_path}/batched_preds/predictions_batch_{batch_start}_{batch_end}.npy'
-        np.save(pred_file, predictions_np)
-        print(f'  Saved predictions to batch file')
+        pred_dir = f'{storage_path}/batched_preds/'
+        np.save(f'/predictions_batch_{batch_start}_{batch_end}.npy', predictions_np)
+        subprocess.run(['sudo', 'cp', f'predictions_batch_{batch_start}_{batch_end}.npy', pred_dir])
+        print(f'Saved predictions to batch file')
     
     # Process and save attention matrices for specified classes
     class_attention_dict = {cls: [] for cls in classes_to_process}
@@ -195,8 +195,9 @@ while counter < chunk_end:
     # Save attention by class
     for cls in classes_to_process:
         if len(class_attention_dict[cls]) > 0:
-            attention_file = f'{storage_path}/batched_attns/{cls.lower()}_attention_batch_{batch_start}_{batch_end}.npy'
-            np.save(attention_file, np.array(class_attention_dict[cls], dtype=object))
+            attention_dir = f'{storage_path}/batched_attns/'
+            np.save(f'{cls.lower()}_attention_batch_{batch_start}_{batch_end}.npy', np.array(class_attention_dict[cls], dtype=object))
+            subprocess.run(['sudo', 'mv', f'{cls.lower()}_attention_batch_{batch_start}_{batch_end}.npy', attention_dir])
             print(f'  Saved {len(class_attention_dict[cls])} {cls} attention matrices')
     
     # Update counter
