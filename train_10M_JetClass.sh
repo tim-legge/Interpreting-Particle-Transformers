@@ -32,6 +32,9 @@ model=$1
 if [[ "$model" == "ParT" ]]; then
     modelopts="networks/example_ParticleTransformer.py --use-amp"
     batchopts="--batch-size 512 --start-lr 1e-3"
+elif [[ "$model" == "Argmax-ParT" ]]; then
+    modelopts="networks/ParT_argmax.py --use-amp"
+    batchopts="--batch-size 512 --start-lr 1e-3"
 elif [[ "$model" == "GLA" ]]; then
     modelopts="networks/gla_transformer.py"
     batchopts="--batch-size 512 --start-lr 1e-3"
@@ -63,16 +66,16 @@ SAMPLE_TYPE=Pythia
 
 $CMD \
     --data-train \
-    "HToBB:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToBB_000.root" \
-    "HToCC:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToCC_000.root" \
-    "HToGG:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToGG_000.root" \
-    "HToWW2Q1L:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToWW2Q1L_000.root" \
-    "HToWW4Q:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToWW4Q_000.root" \
-    "TTBar:${DATADIR}/${SAMPLE_TYPE}/train_100M/TTBar_000.root" \
-    "TTBarLep:${DATADIR}/${SAMPLE_TYPE}/train_100M/TTBarLep_000.root" \
-    "WToQQ:${DATADIR}/${SAMPLE_TYPE}/train_100M/WToQQ_000.root" \
-    "ZToQQ:${DATADIR}/${SAMPLE_TYPE}/train_100M/ZToQQ_000.root" \
-    "ZJetsToNuNu:${DATADIR}/${SAMPLE_TYPE}/train_100M/ZJetsToNuNu_000.root" \
+    "HToBB:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToBB_*00.root" \
+    "HToCC:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToCC_*00.root" \
+    "HToGG:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToGG_*00.root" \
+    "HToWW2Q1L:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToWW2Q1L_*00.root" \
+    "HToWW4Q:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToWW4Q_*00.root" \
+    "TTBar:${DATADIR}/${SAMPLE_TYPE}/train_100M/TTBar_*00.root" \
+    "TTBarLep:${DATADIR}/${SAMPLE_TYPE}/train_100M/TTBarLep_*00.root" \
+    "WToQQ:${DATADIR}/${SAMPLE_TYPE}/train_100M/WToQQ_*00.root" \
+    "ZToQQ:${DATADIR}/${SAMPLE_TYPE}/train_100M/ZToQQ_*00.root" \
+    "ZJetsToNuNu:${DATADIR}/${SAMPLE_TYPE}/train_100M/ZJetsToNuNu_*00.root" \
     --data-val "${DATADIR}/${SAMPLE_TYPE}/val_5M/*.root" \
     --data-test \
     "HToBB:${DATADIR}/${SAMPLE_TYPE}/test_20M/HToBB_*.root" \
