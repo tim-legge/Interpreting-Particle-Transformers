@@ -2,7 +2,7 @@
 set -e
 
 if [[ -z "${DATADIR_JetClass}" ]]; then
-    echo "Error: The DATA_PATH environment variable is not set."
+    echo "Error: The DATADIR_JetClass environment variable is not set."
     exit 1
 fi
 if [[ -z "${OUTPUT_PATH}" ]]; then
@@ -10,7 +10,7 @@ if [[ -z "${OUTPUT_PATH}" ]]; then
     exit 1
 fi
 
-DATADIR="${DATA_PATH}/JetClass/Pythia"
+DATADIR="${DATADIR_JetClass}/JetClass/Pythia"
 OUTPUT_VOL_DIR="${OUTPUT_PATH}"
 
 echo "args: $@"
