@@ -2,7 +2,40 @@ import torch
 import numpy as np
 from weaver.nn.model.ParticleTransformer import ParticleTransformer
 from weaver.utils.logger import _logger
+from typing import List, Optional
+import timeit
+import awkward as ak
+import torch
+import torch.nn as nn
+from torch.nn import Parameter 
+from torch.nn.init import xavier_uniform_, xavier_normal_, constant_
+import torch
+from torch import nn, Tensor
+from typing import Optional
+import torch.nn.functional as F
+from typing import Optional, Tuple
+_is_fastpath_enabled: bool = True
+from torch.overrides import (
+    handle_torch_function,
+    has_torch_function,
+    has_torch_function_unary,
+    has_torch_function_variadic,
+)
+linear = torch._C._nn.linear
+import math
+import random
+import warnings
+import copy
+from torch._C import _add_docstr, _infer_size
 
+from functools import partial
+from weaver.utils.logger import _logger
+import os
+import uproot
+from torch.utils.data import IterableDataset, DataLoader
+import numpy as np
+from tqdm import tqdm
+from torch._torch_docs import reproducibility_notes, sparse_support_notes, tf32_notes
 '''
 Link to the full model implementation:
 https://github.com/hqucms/weaver-core/blob/main/weaver/nn/model/ParticleTransformer.py
@@ -20,7 +53,7 @@ import torch
 import torch.nn as nn
 from functools import partial
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 #from fairseq import utils
 #from fairseq.incremental_decoding_utils import with_incremental_state
 #from fairseq.modules.quant_noise import quant_noise
@@ -117,7 +150,6 @@ class MultiheadAttention(nn.Module):
         batch_first=False,
         device=None,
         dtype=None,
-        return_pre_softmax: bool = False,
     ) -> None:
         if embed_dim <= 0 or num_heads <= 0:
             raise ValueError(
@@ -127,7 +159,6 @@ class MultiheadAttention(nn.Module):
         factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
         self.embed_dim = embed_dim
-        self.return_pre_softmax = return_pre_softmax
         self.kdim = kdim if kdim is not None else embed_dim
         self.vdim = vdim if vdim is not None else embed_dim
         self._qkv_same_embed_dim = self.kdim == embed_dim and self.vdim == embed_dim
@@ -210,7 +241,6 @@ class MultiheadAttention(nn.Module):
         attn_mask: Optional[Tensor] = None,
         average_attn_weights: bool = True,
         is_causal: bool = False,
-        return_pre_softmax: bool = False,
     ) -> Tuple[Tensor, Optional[Tensor]]:
         r"""Compute attention outputs using query, key, and value embeddings.
 
@@ -411,87 +441,38 @@ class MultiheadAttention(nn.Module):
                 query, key, value = (x.transpose(1, 0) for x in (query, key, value))
 
         if not self._qkv_same_embed_dim:
-            if self.return_pre_softmax:
-                attn_output, attn_output_weights, pre_softmax_attention, pre_softmax_interaction = multi_head_attention_forward(
-                    query, key, value, self.embed_dim, self.num_heads, self.in_proj_weight, self.in_proj_bias, self.bias_k, self.bias_v,
-                self.add_zero_attn, self.dropout, self.out_proj.weight, self.out_proj.bias, training=self.training, key_padding_mask=key_padding_mask,
-                need_weights=need_weights, attn_mask=attn_mask, use_separate_proj_weight=True, q_proj_weight=self.q_proj_weight,
-                k_proj_weight=self.k_proj_weight, v_proj_weight=self.v_proj_weight, average_attn_weights=average_attn_weights, is_causal=is_causal,
-                return_pre_softmax=self.return_pre_softmax,
-            )
-                pre_softmax_attention.cpu().detach()
-                pre_softmax_interaction.cpu().detach()
-            else:
-                attn_output, attn_output_weights = multi_head_attention_forward(
-                    query, key, value, self.embed_dim, self.num_heads, self.in_proj_weight, self.in_proj_bias, self.bias_k, self.bias_v,
-                self.add_zero_attn, self.dropout, self.out_proj.weight, self.out_proj.bias, training=self.training, key_padding_mask=key_padding_mask,
-                need_weights=need_weights, attn_mask=attn_mask, use_separate_proj_weight=True, q_proj_weight=self.q_proj_weight,
-                k_proj_weight=self.k_proj_weight, v_proj_weight=self.v_proj_weight, average_attn_weights=average_attn_weights, is_causal=is_causal,
-                return_pre_softmax=self.return_pre_softmax,
+            attn_output, attn_output_weights = multi_head_attention_forward(
+                query, key, value, self.embed_dim, self.num_heads, self.in_proj_weight, self.in_proj_bias, self.bias_k, self.bias_v,
+            self.add_zero_attn, self.dropout, self.out_proj.weight, self.out_proj.bias, training=self.training, key_padding_mask=key_padding_mask,
+            need_weights=need_weights, attn_mask=attn_mask, use_separate_proj_weight=True, q_proj_weight=self.q_proj_weight,
+            k_proj_weight=self.k_proj_weight, v_proj_weight=self.v_proj_weight, average_attn_weights=average_attn_weights, is_causal=is_causal,
             )
         else:
-            if self.return_pre_softmax:
-                attn_output, attn_output_weights, pre_softmax_attention, pre_softmax_interaction = multi_head_attention_forward(
-                    query,
-                    key,
-                    value,
-                    self.embed_dim,
-                    self.num_heads,
-                    self.in_proj_weight,
-                    self.in_proj_bias,
-                    self.bias_k,
-                    self.bias_v,
-                    self.add_zero_attn,
-                    self.dropout,
-                    self.out_proj.weight,
-                    self.out_proj.bias,
-                    training=self.training,
-                    key_padding_mask=key_padding_mask,
-                    need_weights=need_weights,
-                    attn_mask=attn_mask,
-                    average_attn_weights=average_attn_weights,
-                    is_causal=is_causal,
-                    return_pre_softmax=self.return_pre_softmax,
-                )
-                pre_softmax_attention.cpu().detach()
-                pre_softmax_interaction.cpu().detach()
-            else:
-                attn_output, attn_output_weights = multi_head_attention_forward(
-                query,
-                key,
-                value,
-                self.embed_dim,
-                self.num_heads,
-                self.in_proj_weight,
-                self.in_proj_bias,
-                self.bias_k,
-                self.bias_v,
-                self.add_zero_attn,
-                self.dropout,
-                self.out_proj.weight,
-                self.out_proj.bias,
-                training=self.training,
-                key_padding_mask=key_padding_mask,
-                need_weights=need_weights,
-                attn_mask=attn_mask,
-                average_attn_weights=average_attn_weights,
-                is_causal=is_causal,
-                return_pre_softmax=self.return_pre_softmax,
-            )
+            attn_output, attn_output_weights = multi_head_attention_forward(
+            query,
+            key,
+            value,
+            self.embed_dim,
+            self.num_heads,
+            self.in_proj_weight,
+            self.in_proj_bias,
+            self.bias_k,
+            self.bias_v,
+            self.add_zero_attn,
+            self.dropout,
+            self.out_proj.weight,
+            self.out_proj.bias,
+            training=self.training,
+            key_padding_mask=key_padding_mask,
+            need_weights=need_weights,
+            attn_mask=attn_mask,
+            average_attn_weights=average_attn_weights,
+            is_causal=is_causal,
+        )
         if self.batch_first and is_batched:
-            if self.return_pre_softmax:
-                pre_softmax_attention.cpu().detach()
-                pre_softmax_interaction.cpu().detach()
-                return attn_output.transpose(1, 0), attn_output_weights, pre_softmax_attention, pre_softmax_interaction
-            else:
-                return attn_output.transpose(1, 0), attn_output_weights
+            return attn_output.transpose(1, 0), attn_output_weights
         else:
-            if self.return_pre_softmax:
-                    pre_softmax_attention.cpu().detach()
-                    pre_softmax_interaction.cpu().detach()
-                    return attn_output, attn_output_weights, pre_softmax_attention, pre_softmax_interaction
-            else:
-                return attn_output, attn_output_weights
+            return attn_output, attn_output_weights
 
     def merge_masks(
         self,
@@ -754,7 +735,6 @@ def multi_head_attention_forward(
     static_v: Optional[Tensor] = None,
     average_attn_weights: bool = True,
     is_causal: bool = False,
-    return_pre_softmax: bool = False,
 ) -> Tuple[Tensor, Optional[Tensor]]:
     r"""Forward method for MultiHeadAttention.
 
@@ -873,8 +853,7 @@ def multi_head_attention_forward(
             static_k=static_k,
             static_v=static_v,
             average_attn_weights=average_attn_weights,
-            return_pre_softmax=return_pre_softmax,
-        )
+            )
 
     is_batched = _mha_shape_check(
         query, key, value, key_padding_mask, attn_mask, num_heads
@@ -1099,10 +1078,6 @@ def multi_head_attention_forward(
         )
 
         if attn_mask is not None:
-            pre_softmax_interaction = attn_mask
-            pre_softmax_interaction.detach()
-            pre_softmax_attention = torch.bmm(q_scaled, k.transpose(-2, -1))
-            pre_softmax_attention.detach()
             attn_output_weights = torch.baddbmm(
                 attn_mask, q_scaled, k.transpose(-2, -1)
             )
@@ -1111,7 +1086,7 @@ def multi_head_attention_forward(
         
         attn_output_weights = gumbel_softmax(attn_output_weights, tau=0.1, dim=-1)
         if dropout_p > 0.0:
-            attn_output_weights = torch.dropout(attn_output_weights, p=dropout_p)
+            attn_output_weights = torch.dropout(attn_output_weights, p=dropout_p, train=training)
 
         attn_output = torch.bmm(attn_output_weights, v)
 
@@ -1130,10 +1105,7 @@ def multi_head_attention_forward(
             # squeeze the output if input was unbatched
             attn_output = attn_output.squeeze(1)
             attn_output_weights = attn_output_weights.squeeze(0)
-        if return_pre_softmax:
-            return attn_output, attn_output_weights, pre_softmax_attention, pre_softmax_interaction
-        else:
-            return attn_output, attn_output_weights
+        return attn_output, attn_output_weights
     else:
         # attn_mask can be either (L,S) or (N*num_heads, L, S)
         # if attn_mask's shape is (1, L, S) we need to unsqueeze to (1, 1, L, S)
@@ -1526,8 +1498,7 @@ class Block(nn.Module):
     def __init__(self, embed_dim=128, num_heads=8, ffn_ratio=4,
                  dropout=0.1, attn_dropout=0.1, activation_dropout=0.1,
                  add_bias_kv=False, activation='gelu',
-                 scale_fc=True, scale_attn=True, scale_heads=True, scale_resids=True,
-                 return_pre_softmax=False):
+                 scale_fc=True, scale_attn=True, scale_heads=True, scale_resids=True,):
         super().__init__()
 
         self.embed_dim = embed_dim
@@ -1536,7 +1507,6 @@ class Block(nn.Module):
         self.ffn_dim = embed_dim * ffn_ratio
         self.interaction = None
         self.pre_mask_attn_weights = None  # To store attention weights before mask is applied
-        self.return_pre_softmax = return_pre_softmax
 
         self.pre_attn_norm = nn.LayerNorm(embed_dim)
         self.attn = MultiheadAttention(
@@ -1544,8 +1514,7 @@ class Block(nn.Module):
             num_heads,
             dropout=attn_dropout,
             add_bias_kv=add_bias_kv,
-            return_pre_softmax=self.return_pre_softmax
-        )
+            )
         self.post_attn_norm = nn.LayerNorm(embed_dim) if scale_attn else None
         self.dropout = nn.Dropout(dropout)
 
@@ -1586,43 +1555,19 @@ class Block(nn.Module):
             u = torch.cat(tensors=(x_cls, x), dim=0)  # (seq_len+1, batch, embed_dim)
             u = self.pre_attn_norm(u)
 
-            if self.return_pre_softmax:
-                x, _, pre_softmax_attention, pre_softmax_interaction = self.attn(
-                    x_cls, u, u, key_padding_mask=padding_mask,
-                    attn_mask=attn_mask, average_attn_weights=False, return_pre_softmax=self.return_pre_softmax)
-                pre_softmax_attention.cpu().detach()
-                pre_softmax_interaction.cpu().detach()
-            else:
+            x = self.attn(x_cls, u, u, key_padding_mask=padding_mask)[0]  # (1, batch, embed_dim)
 
-                x = self.attn(x_cls, u, u, key_padding_mask=padding_mask)[0]  # (1, batch, embed_dim)
-
-            pre_softmax_attention = None
-            pre_softmax_interaction = None
         else:
             residual = x
 
             x = self.pre_attn_norm(x)
 
-            if self.return_pre_softmax:
-                x, y, pre_softmax_attention, pre_softmax_interaction = self.attn(
+            x = self.attn(
                     x, x, x, key_padding_mask=padding_mask,
-                    attn_mask=attn_mask, average_attn_weights=False, return_pre_softmax=self.return_pre_softmax)
-                y = self.attn(x, x, x, key_padding_mask=padding_mask,
-                    attn_mask=attn_mask, average_attn_weights=False, return_pre_softmax=self.return_pre_softmax)[1]
-                pre_softmax_attention = self.attn(x, x, x, key_padding_mask=padding_mask, 
-                    attn_mask=attn_mask, average_attn_weights=False, return_pre_softmax=self.return_pre_softmax)[2]
-                pre_softmax_interaction = self.attn(x, x, x, key_padding_mask=padding_mask,
-                    attn_mask=attn_mask, average_attn_weights=False, return_pre_softmax=self.return_pre_softmax)[3]
-                pre_softmax_attention.cpu().detach()
-                pre_softmax_interaction.cpu().detach()
-            
-            else:
-                x = self.attn(
+                    attn_mask=attn_mask, average_attn_weights=False)[0]
+            y = self.attn(
                     x, x, x, key_padding_mask=padding_mask,
-                    attn_mask=attn_mask, average_attn_weights=False, return_pre_softmax=self.return_pre_softmax)[0]
-                y = self.attn(
-                    x, x, x, key_padding_mask=padding_mask,
-                    attn_mask=attn_mask, average_attn_weights=False, return_pre_softmax=self.return_pre_softmax)[1]
+                    attn_mask=attn_mask, average_attn_weights=False)[1]
             
             self.interaction = y
 
@@ -1649,10 +1594,7 @@ class Block(nn.Module):
             residual = torch.mul(self.w_resid, residual)
         x += residual
 
-        if self.return_pre_softmax:
-            return x, pre_softmax_attention, pre_softmax_interaction
-        else:
-            return x
+        return x
 
 
 class ParticleTransformer(nn.Module):
@@ -1678,7 +1620,6 @@ class ParticleTransformer(nn.Module):
                  trim=True,
                  for_inference=False,
                  use_amp=False,
-                 return_pre_softmax=False,
                  **kwargs) -> None:
         super().__init__(**kwargs)
 
@@ -1686,14 +1627,12 @@ class ParticleTransformer(nn.Module):
         self.attention_matrix = []
         self.for_inference = for_inference
         self.use_amp = use_amp
-        self.return_pre_softmax = return_pre_softmax
 
         embed_dim = embed_dims[-1] if len(embed_dims) > 0 else input_dim
         self.default_cfg = default_cfg = dict(embed_dim=embed_dim, num_heads=num_heads, ffn_ratio=4,
                            dropout=0.1, attn_dropout=0.1, activation_dropout=0.1,
                            add_bias_kv=False, activation=activation,
-                           scale_fc=True, scale_attn=True, scale_heads=True, scale_resids=True,
-                           return_pre_softmax=self.return_pre_softmax)
+                           scale_fc=True, scale_attn=True, scale_heads=True, scale_resids=True)
         self.pairMatrixes = []
 
         cfg_block = copy.deepcopy(default_cfg)
@@ -1770,10 +1709,7 @@ class ParticleTransformer(nn.Module):
             # transform
             #num = 0
             for block in self.blocks:
-                if self.return_pre_softmax:
-                    x = block(x, x_cls=None, padding_mask=padding_mask, attn_mask=attn_mask)[0]
-                else:
-                    x = block(x, x_cls=None, padding_mask=padding_mask, attn_mask=attn_mask)
+                x = block(x, x_cls=None, padding_mask=padding_mask, attn_mask=attn_mask)
                 self.interactionMatrix = attn_mask
                 #if num == 0 :
                 self.attention_matrix.append(block.interaction)
@@ -1782,10 +1718,7 @@ class ParticleTransformer(nn.Module):
             # extract class token
             cls_tokens = self.cls_token.expand(1, x.size(1), -1)  # (1, N, C)
             for block in self.cls_blocks:
-                if self.return_pre_softmax:
-                    cls_tokens = block(x, x_cls=cls_tokens, padding_mask=padding_mask)[0]
-                else:
-                    cls_tokens = block(x, x_cls=cls_tokens, padding_mask=padding_mask)
+                cls_tokens = block(x, x_cls=cls_tokens, padding_mask=padding_mask)
 
             x_cls = self.norm(cls_tokens).squeeze(0)
 
