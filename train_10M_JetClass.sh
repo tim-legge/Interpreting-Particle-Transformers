@@ -66,16 +66,16 @@ SAMPLE_TYPE=Pythia
 
 $CMD \
     --data-train \
-    "HToBB:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToBB_*00.root" \
-    "HToCC:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToCC_*00.root" \
-    "HToGG:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToGG_*00.root" \
-    "HToWW2Q1L:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToWW2Q1L_*00.root" \
-    "HToWW4Q:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToWW4Q_*00.root" \
-    "TTBar:${DATADIR}/${SAMPLE_TYPE}/train_100M/TTBar_*00.root" \
-    "TTBarLep:${DATADIR}/${SAMPLE_TYPE}/train_100M/TTBarLep_*00.root" \
-    "WToQQ:${DATADIR}/${SAMPLE_TYPE}/train_100M/WToQQ_*00.root" \
-    "ZToQQ:${DATADIR}/${SAMPLE_TYPE}/train_100M/ZToQQ_*00.root" \
-    "ZJetsToNuNu:${DATADIR}/${SAMPLE_TYPE}/train_100M/ZJetsToNuNu_*00.root" \
+    "HToBB:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToBB_*0.root" \
+    "HToCC:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToCC_*0.root" \
+    "HToGG:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToGG_*0.root" \
+    "HToWW2Q1L:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToWW2Q1L_*0.root" \
+    "HToWW4Q:${DATADIR}/${SAMPLE_TYPE}/train_100M/HToWW4Q_*0.root" \
+    "TTBar:${DATADIR}/${SAMPLE_TYPE}/train_100M/TTBar_*0.root" \
+    "TTBarLep:${DATADIR}/${SAMPLE_TYPE}/train_100M/TTBarLep_*0.root" \
+    "WToQQ:${DATADIR}/${SAMPLE_TYPE}/train_100M/WToQQ_*0.root" \
+    "ZToQQ:${DATADIR}/${SAMPLE_TYPE}/train_100M/ZToQQ_*0.root" \
+    "ZJetsToNuNu:${DATADIR}/${SAMPLE_TYPE}/train_100M/ZJetsToNuNu_*0.root" \
     --data-val "${DATADIR}/${SAMPLE_TYPE}/val_5M/*.root" \
     --data-test \
     "HToBB:${DATADIR}/${SAMPLE_TYPE}/test_20M/HToBB_*.root" \
