@@ -1115,7 +1115,7 @@ def multi_head_attention_forward(
         
         attn_output_weights = torch.softmax(attn_output_weights, dim=-1)
         if dropout_p > 0.0:
-            attn_output_weights = torch.dropout(attn_output_weights, p=dropout_p)
+            attn_output_weights = torch.dropout(attn_output_weights, p=dropout_p, train=training)
 
         attn_output = torch.bmm(attn_output_weights, v)
 

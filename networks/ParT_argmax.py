@@ -1061,10 +1061,13 @@ def multi_head_attention_forward(
         else:
             attn_output_weights = torch.bmm(q_scaled, k.transpose(-2, -1))
         
-        
-        attn_output_weights = gumbel_softmax(
-            attn_output_weights, tau=0.1, hard=True, dim=-1
-        )
+        if training:
+            attn_output_weights = gumbel_softmax(
+                attn_output_weights, tau=0.1, hard=True, dim=-1
+            )
+        else:
+            attn_output_weights = torch.argmax(attn_output_weights, dim=-1, keepdim=True)
+            attn_output_weights = F.one_hot(attn_output_weights.squeeze(-1), num_classes=src_len).type_as(attn_output_weights)
         if dropout_p > 0.0:
             attn_output_weights = torch.dropout(attn_output_weights, p=dropout_p, train=training)
 
