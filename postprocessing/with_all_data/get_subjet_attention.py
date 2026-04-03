@@ -44,7 +44,10 @@ import subprocess
 import argparse
 import logging
 
+import sys
+sys.path.append('../')
 from model_utils import *
+from subjet_utils import *
 
 parser = argparse.ArgumentParser(description='Subjet attention job specs.')
 parser.add_argument('--class-to-analyze', '-a', type=str, help='Class to analyze (H4q, Tbqq)')
@@ -64,7 +67,7 @@ plot_q = args.plot
 
 jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 
-jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
+jc_full_hooks = ParT_Hook(model=jc_full_model)
 
 classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
 subjets = [1, 2, 2, 2, 4, 3, 2, 2, 3, 2]
@@ -125,8 +128,8 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
 
         assert jc_labels.shape[0] == howmanyjets, f"Expected {howmanyjets} jets, but got {jc_labels.shape[0]}"
 
-        jc_kin_lepton_attention_hooks = Pre_Softmax_Hook(model=jc_kin_lepton_attention)
-        init_lepton_attention_hooks = Pre_Softmax_Hook(model=init_lepton_attention)
+        jc_kin_lepton_attention_hooks = ParT_Hook(model=jc_kin_lepton_attention)
+        init_lepton_attention_hooks = ParT_Hook(model=init_lepton_attention)
 
         init_lepton_attention.eval()
         with torch.no_grad():
@@ -263,7 +266,7 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
         subprocess.run(['sudo', 'mv', trained_file, storage_path])
 
     else:
-        zero_u_jc_kin_hooks = Pre_Softmax_Hook(model=zero_u_jc_kin)
+        zero_u_jc_kin_hooks = ParT_Hook(model=zero_u_jc_kin)
 
         zero_u_jc_kin.eval()
         with torch.no_grad():

@@ -1,5 +1,10 @@
 # contains model code, specs of hooking
 
+import numpy as np
+import matplotlib.pyplot as plt
+import mplhep
+import sys
+from sklearn.decomposition import PCA
 from typing import List, Optional
 import timeit
 import awkward as ak
@@ -25,6 +30,10 @@ import random
 import warnings
 import copy
 from torch._C import _add_docstr, _infer_size
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+from matplotlib.colorbar import ColorbarBase
+from matplotlib.cm import ScalarMappable
 
 from functools import partial
 from weaver.utils.logger import _logger
@@ -1115,7 +1124,7 @@ def multi_head_attention_forward(
         
         attn_output_weights = torch.softmax(attn_output_weights, dim=-1)
         if dropout_p > 0.0:
-            attn_output_weights = torch.dropout(attn_output_weights, p=dropout_p, train=training)
+            attn_output_weights = torch.dropout(attn_output_weights, p=dropout_p)
 
         attn_output = torch.bmm(attn_output_weights, v)
 
@@ -1705,6 +1714,7 @@ class ParticleTransformer(nn.Module):
                  for_inference=False,
                  use_amp=False,
                  return_pre_softmax=False,
+                 interaction_strength=1.0,
                  **kwargs) -> None:
         super().__init__(**kwargs)
 
@@ -1713,6 +1723,7 @@ class ParticleTransformer(nn.Module):
         self.for_inference = for_inference
         self.use_amp = use_amp
         self.return_pre_softmax = return_pre_softmax
+        self.interaction_strength = interaction_strength
 
         embed_dim = embed_dims[-1] if len(embed_dims) > 0 else input_dim
         self.default_cfg = default_cfg = dict(embed_dim=embed_dim, num_heads=num_heads, ffn_ratio=4,
@@ -1791,7 +1802,7 @@ class ParticleTransformer(nn.Module):
             x = self.embed(x).masked_fill(~mask.permute(2, 0, 1), 0)  # (P, N, C)
             attn_mask = None
             if (v is not None or uu is not None) and self.pair_embed is not None:
-                attn_mask = self.pair_embed(v, uu).view(-1, v.size(-1), v.size(-1))  # (N*num_heads, P, P)
+                attn_mask = self.interaction_strength * self.pair_embed(v, uu).view(-1, v.size(-1), v.size(-1))  # (N*num_heads, P, P)
 
             # transform
             #num = 0
@@ -1814,6 +1825,8 @@ class ParticleTransformer(nn.Module):
                     cls_tokens = block(x, x_cls=cls_tokens, padding_mask=padding_mask)
 
             x_cls = self.norm(cls_tokens).squeeze(0)
+            # save cls tokens for analysis, scooped up by hooks
+            self.final_cls_token = x_cls
 
             # fc
             if self.fc is None:
@@ -2014,25 +2027,22 @@ class ParticleTransformerWrapper(torch.nn.Module):
     def get_interactionMatrix(self):
         return self.interactionMatrix
     
-class Pre_Softmax_Hook:
-    def __init__(self, model):
+class ParT_Hook:
+    def __init__(self, model, type='attention'):
         self.model = model
         self.kwargs = self.model.kwargs
+        assert type in ['attention', 'class token', 'both'], "type must be one of 'attention', 'class token', or 'both'"
 
         if isinstance(self.model, ParticleTransformerWrapper):
             self.model = self.model.mod
 
-        for module in self.model.blocks:
-            #if layer_name in name:
-                # register forward hook functions
-            handle_attn = module.register_forward_hook(lambda *args, **kwargs: Pre_Softmax_Hook.get_pre_softmax_attention(self, *args, **kwargs))
-            handle_inter = module.register_forward_hook(lambda *args, **kwargs: Pre_Softmax_Hook.get_pre_softmax_interaction(self, *args, **kwargs))
-
-            print(f"Registered hook onto module")
-
-        self.handle_attn = handle_attn
-        self.handle_inter = handle_inter
-        #self.cls_handle_attn = cls_handle_attn
+        if type == 'attention' or type == 'both':
+            for module in self.model.blocks:
+                self.handle_attn = handle_attn = module.register_forward_hook(lambda *args, **kwargs: ParT_Hook.get_pre_softmax_attention(self, *args, **kwargs))
+                self.handle_inter = handle_inter = module.register_forward_hook(lambda *args, **kwargs: ParT_Hook.get_pre_softmax_interaction(self, *args, **kwargs))
+                print(f"Registered hooks onto attention modules")
+        if type == 'class token' or type == 'both':
+            self.handle_cls_tkn = handle_cls_tkn = self.model.register_forward_hook(lambda *args, **kwargs: ParT_Hook.get_last_layer_class_token(self, *args, **kwargs))
 
         self.embed_dim = self.model.default_cfg['embed_dim']
         self.num_heads = self.model.default_cfg['num_heads']
@@ -2040,20 +2050,14 @@ class Pre_Softmax_Hook:
 
         self.pre_softmax_attentions = torch.empty((0, self.num_heads, self.seq_len, self.seq_len), dtype=torch.float32)
         self.pre_softmax_interactions = torch.empty((0, self.num_heads, self.seq_len, self.seq_len), dtype=torch.float32)
+        self.cls_tokens = torch.empty((0, self.embed_dim), dtype=torch.float32)
 
     def get_pre_softmax_attention(self, module, input, output):
         #print('Getting pre_softmax attention...')
 
-        # handle batching - we will divide 1st dimension by the number such that it will comport with num_heads
-        #print(f'Got shape:{output[1].shape}')
         output_hooked = output[1]
         output_split = output_hooked.view(output_hooked.shape[0]//self.num_heads, self.num_heads, output_hooked.shape[1], output_hooked.shape[2])
         output_unsqueezed = output_split.unsqueeze(dim=0)
-    
-        #print('Split the output into heads.\nNew Tensor Shapes:')
-        #print(f'{output_split[0].shape}')
-
-        # set correct number of particles for cat
 
         if self.pre_softmax_attentions.shape[0] == 0:
             self.pre_softmax_attentions = torch.empty((0, output_hooked.shape[0]//self.num_heads, self.num_heads, output_unsqueezed.shape[3], output_unsqueezed.shape[4]), dtype=torch.float32)
@@ -2061,10 +2065,6 @@ class Pre_Softmax_Hook:
         self.pre_softmax_attentions = torch.cat((self.pre_softmax_attentions, output_unsqueezed), dim=0)
     
     def get_pre_softmax_interaction(self, module, input, output):
-        #print('Getting pre-softmax interaction...')
-
-        # handle batching - we will divide 1st dimension by the number such that it will comport with num_heads
-        #print(f'Got shape:{output[2].shape}')
         output_hooked = output[2]
         output_split = output_hooked.view(output_hooked.shape[0]//self.num_heads, self.num_heads, output_hooked.shape[1], output_hooked.shape[2])
         output_unsqueezed = output_split.unsqueeze(dim=0)
@@ -2077,25 +2077,14 @@ class Pre_Softmax_Hook:
         # call sort method (defined later) to substitute for cut_padding
         # self.sorted_interactions = self.sort(self.pre_softmax_interactions)
 
-    def sort(self, tensor):
-        
-        config = self.kwargs
-
-        if 'num_layers' in config:
-            num_layers = config['num_layers']
-        else:
-            num_layers = 8
-
-        num_jets = tensor.shape[0] // num_layers
-
-        tensor_as_np = tensor.numpy() # should be (total_num_layers, num_heads, jet_length, jet_length)
-        tensor_as_np = np.split(tensor_as_np, indices_or_sections=num_jets, axis=0) # now listed by layer -> (jet_num, head, jet_length, jet_length)
-
-        return tensor_as_np
+    def get_last_layer_class_token(self, module, input, output):
+        cls_token = module.final_cls_token
+        cls_token_unsqueezed = cls_token
+        self.cls_tokens = torch.cat((self.cls_tokens, cls_token_unsqueezed), dim=0)
 
     def cut_padding(self, tensor, mask):
         '''
-        Presents collected tensor from Pre_Softmax_Hook as list of particles with each item a 4d ndarray like (layers, heads, jet_length, jet_length).
+        Presents collected tensor from ParT_Hook as list of particles with each item a 4d ndarray like (layers, heads, jet_length, jet_length).
         Padding removed.
 
         Args:
@@ -2124,9 +2113,6 @@ class Pre_Softmax_Hook:
         for jet_idx in range(tensor_as_np.shape[1]):
             padding_limit = np.sum(mask[jet_idx]).astype(int)
             padding_limits.append(padding_limit)
-            #tensor_as_ak[:,jet_idx,:,:,:] = tensor_as_ak[:,jet_idx,:,:padding_limit, :padding_limit]
-        
-        #print(f'Padding Limit: {padding_limits}')
 
         return padding_limits
 
@@ -2138,7 +2124,6 @@ class Pre_Softmax_Hook:
         #self.cls_handle_attn.remove()
 
 def get_model(model_type='qg',**kwargs):
-
 
     if model_type == 'qg':
         # QuarkGluon model configuration (13 kinpid features)
@@ -2261,6 +2246,7 @@ def get_model(model_type='qg',**kwargs):
             trim=True,
             for_inference=False,
             return_pre_softmax=True,
+            interaction_strength=1.0,
         )
     
     cfg.update(**kwargs)
@@ -2271,106 +2257,3 @@ def get_model(model_type='qg',**kwargs):
     }
 
     return model
-
-
-def get_subjets(px, py, pz, e, N_SUBJETS=3, JET_ALGO="kt", jet_radius=0.8):
-    """
-    Declusters a jet into exactly N_SUBJETS using the JET_ALGO and jet_radius provided.
-
-    Args:
-        px [np.ndarray]: NumPy array of shape ``[num_particles]`` containing the px of each particle inside the jet
-        py [np.ndarray]: NumPy array of shape ``[num_particles]`` containing the py of each particle inside the jet
-        pz [np.ndarray]: NumPy array of shape ``[num_particles]`` containing the pz of each particle inside the jet
-        e [np.ndarray]: NumPy array of shape ``[num_particles]`` containing the e of each particle inside the jet
-        N_SUBJETS [int]: Number of subjets to decluster the jet into
-            (default is 3)
-        JET_ALGO [str]: The jet declustering algorithm to use. Choices are ["CA", "kt", "antikt"]
-            (default is "CA")
-        jet_radius [float]: The jet radius to use when declustering
-            (default is 0.8)
-
-    Returns:
-        subjet_idx [np.array]: NumPy array of shape ``[num_particles]`` with elements
-                                representing which subjet the particle belongs to
-        subjet_vectors [list]: includes bjet information (e.g. px, py, pz)
-
-    """
-    import awkward as ak
-    import fastjet
-    import vector
-
-    if JET_ALGO == "kt":
-        JET_ALGO = fastjet.kt_algorithm
-    elif JET_ALGO == "antikt":
-        JET_ALGO = fastjet.antikt_algorithm
-    elif JET_ALGO == "CA":
-        JET_ALGO = fastjet.cambridge_algorithm
-
-    jetdef = fastjet.JetDefinition(JET_ALGO, jet_radius)
-
-    # define jet directly not an array of jets
-    jet = ak.zip(
-        {
-            "px": px,
-            "py": py,
-            "pz": pz,
-            "E": e,
-        },
-        with_name="MomentumArray4D",
-    )
-
-    pseudojet = [
-        fastjet.PseudoJet(particle.px.item(), particle.py.item(), particle.pz.item(), particle.E.item()) for particle in jet
-    ]
-
-    cluster = fastjet.ClusterSequence(pseudojet, jetdef)
-
-    # cluster jets
-    jets = cluster.inclusive_jets()
-    #print(len(jets))
-    #assert len(jets) == 1
-
-    # get the 3 exclusive jets
-    subjets = cluster.exclusive_subjets(jets[0], N_SUBJETS)
-    assert len(subjets) == N_SUBJETS
-
-    # sort by pt
-    subjets = sorted(subjets, key=lambda x: x.pt(), reverse=True)
-
-    # define a subjet_idx placeholder
-    subjet_idx = ak.zeros_like(px, dtype=int) - 1
-    mapping = subjet_idx.to_list()
-
-    subjet_indices = []
-    for subjet_idx, subjet in enumerate(subjets):
-        subjet_indices.append([])
-        for subjet_const in subjet.constituents():
-            for idx, jet_const in enumerate(pseudojet):
-                if (
-                    subjet_const.px() == jet_const.px()
-                    and subjet_const.py() == jet_const.py()
-                    and subjet_const.pz() == jet_const.pz()
-                    and subjet_const.E() == jet_const.E()
-                ):
-                    subjet_indices[-1].append(idx)
-
-
-    for subjet_idx, subjet in enumerate(subjets):
-        local_mapping = np.array(mapping)
-        local_mapping[subjet_indices[subjet_idx]] = subjet_idx
-        mapping = local_mapping
-
-    # add the jet index
-    jet["subjet_idx"] = ak.Array(mapping)
-
-    subjet_vectors = [
-        vector.obj(
-            px=ak.sum(jet.px[jet.subjet_idx == j], axis=-1),
-            py=ak.sum(jet.py[jet.subjet_idx == j], axis=-1),
-            pz=ak.sum(jet.pz[jet.subjet_idx == j], axis=-1),
-            E=ak.sum(jet.E[jet.subjet_idx == j], axis=-1),
-        )
-        for j in range(0, N_SUBJETS)
-    ]
-
-    return jet["subjet_idx"].to_numpy(), subjet_vectors

@@ -49,7 +49,11 @@ import matplotlib.colors as mcolors
 from matplotlib.colorbar import ColorbarBase
 from matplotlib.cm import ScalarMappable
 import argparse
+
+import sys
+sys.path.append('../')
 from model_utils import *
+from subjet_utils import *
 
 plt.style.use(hep.style.ROOT)
 
@@ -69,8 +73,8 @@ num_heads_plotted = args.num_heads
 jck_model = get_model(model_type='jck', return_pre_softmax=True)
 jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 
-jc_kin_hooks = Pre_Softmax_Hook(model=jck_model)
-jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
+jc_kin_hooks = ParT_Hook(model=jck_model)
+jc_full_hooks = ParT_Hook(model=jc_full_model)
 
 # access data from local .npys 
 

@@ -2018,7 +2018,7 @@ class ParticleTransformerWrapper(torch.nn.Module):
     def get_interactionMatrix(self):
         return self.interactionMatrix
     
-class Pre_Softmax_Hook:
+class ParT_Hook:
     def __init__(self, model):
         self.model = model
         self.kwargs = self.model.kwargs
@@ -2029,8 +2029,8 @@ class Pre_Softmax_Hook:
         for module in self.model.blocks:
             #if layer_name in name:
                 # register forward hook functions
-            handle_attn = module.register_forward_hook(lambda *args, **kwargs: Pre_Softmax_Hook.get_pre_softmax_attention(self, *args, **kwargs))
-            handle_inter = module.register_forward_hook(lambda *args, **kwargs: Pre_Softmax_Hook.get_pre_softmax_interaction(self, *args, **kwargs))
+            handle_attn = module.register_forward_hook(lambda *args, **kwargs: ParT_Hook.get_pre_softmax_attention(self, *args, **kwargs))
+            handle_inter = module.register_forward_hook(lambda *args, **kwargs: ParT_Hook.get_pre_softmax_interaction(self, *args, **kwargs))
 
             print(f"Registered hook onto module")
         #else:
@@ -2042,7 +2042,7 @@ class Pre_Softmax_Hook:
         #for module in self.model.cls_blocks:
             #if layer_name in name:
                 # register forward hook function - no interaction in class blocks
-            #cls_handle_attn = module.register_forward_hook(lambda *args, **kwargs: Pre_Softmax_Hook.get_pre_softmax_attention(self, *args, **kwargs))
+            #cls_handle_attn = module.register_forward_hook(lambda *args, **kwargs: ParT_Hook.get_pre_softmax_attention(self, *args, **kwargs))
             
             #print(f"Registered hook onto module")
         #else:
@@ -2139,7 +2139,7 @@ class Pre_Softmax_Hook:
 
     def cut_padding(self, tensor, mask):
         '''
-        Presents collected tensor from Pre_Softmax_Hook as list of particles with each item a 4d ndarray like (layers, heads, jet_length, jet_length).
+        Presents collected tensor from ParT_Hook as list of particles with each item a 4d ndarray like (layers, heads, jet_length, jet_length).
         Padding removed.
 
         Args:
@@ -2318,7 +2318,7 @@ def get_model(model_type='qg',**kwargs):
 
 jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 
-jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
+jc_full_hooks = ParT_Hook(model=jc_full_model)
 
 
 howmanyjets = 500

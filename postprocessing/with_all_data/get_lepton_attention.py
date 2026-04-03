@@ -62,7 +62,7 @@ plot_q = args.plot
 
 jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
 
-jc_full_hooks = Pre_Softmax_Hook(model=jc_full_model)
+jc_full_hooks = ParT_Hook(model=jc_full_model)
 
 classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
 start_indices = np.array([8, 0, 1, 2, 4, 3, 9, 7, 6, 5]) * 10000
@@ -113,8 +113,8 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
 
     assert jc_labels.shape[0] == howmanyjets, f"Expected {howmanyjets} jets, but got {jc_labels.shape[0]}"
 
-    jc_kin_lepton_attention_hooks = Pre_Softmax_Hook(model=jc_kin_lepton_attention)
-    init_lepton_attention_hooks = Pre_Softmax_Hook(model=init_lepton_attention)
+    jc_kin_lepton_attention_hooks = ParT_Hook(model=jc_kin_lepton_attention)
+    init_lepton_attention_hooks = ParT_Hook(model=init_lepton_attention)
 
     init_lepton_attention.eval()
     with torch.no_grad():
