@@ -32,6 +32,9 @@ model=$1
 if [[ "$model" == "ParT" ]]; then
     modelopts="networks/example_ParticleTransformer.py --use-amp"
     batchopts="--batch-size 512 --start-lr 1e-3"
+elif [[ "$model" == "Argmax-ParT" ]]; then
+    modelopts="networks/ParT_argmax.py --use-amp"
+    batchopts="--batch-size 512 --start-lr 1e-3"
 elif [[ "$model" == "PN" ]]; then
     modelopts="networks/example_ParticleNet.py"
     batchopts="--batch-size 512 --start-lr 1e-2"
