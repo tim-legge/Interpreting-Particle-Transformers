@@ -24,7 +24,7 @@ fi
 
 epochs=50
 samples_per_epoch=$((1000 * 1024 / $NGPUS))
-samples_per_epoch_val=$((10000 * 128))
+samples_per_epoch_val=$((1000 * 128))
 dataopts="--num-workers 1 --fetch-step 0.01"
 
 # PN, GLA-ParT, PFN, PCNN, ParT
