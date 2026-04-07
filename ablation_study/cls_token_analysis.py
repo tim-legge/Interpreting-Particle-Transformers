@@ -48,10 +48,19 @@ import sys
 sys.path.append('../')
 import model_utils as mu
 
+import argparse
+parser = argparse.ArgumentParser(description='select the interaction parameters to run inference over')
+parser.add_argument('--num-models', '-n', type=int, default=101, help='total number of models / parameter values to run inference over')
+parser.add_argument('--range', '-r', type=str, required=True, help='range of the parameter values to run over (zero-indexed, starting with maximum interaction). Must input in format: <start_idx> <stop_idx>')
+args = parser.parse_args()
 
-num_models = 101
+num_models = args.num_models
+idx_range = args.range.split()
+for idx, item in enumerate(idx_range):
+    idx_range[idx] = int(item)
 model_path = '../models/ParT_full.pt'
 models = [mu.get_model('jc_full', interaction_strength=1-m_idx/(num_models-1)) for m_idx in range(num_models)]
+models = models[idx_range[0]:idx_range[1]]
 state_dict = torch.load(model_path, map_location='cpu')
 for model in models:
     model.load_state_dict(state_dict)
@@ -99,17 +108,19 @@ if not os.path.exists('./pca_plots'):
     subprocess.run(['mkdir', './pca_plots'])
 for m_idx, model in enumerate(models):
     plt.figure(figsize=(8,6))
+    real_m_idx = m_idx + idx_range[0]
     for idx, label in enumerate(idx_to_label):
         mask = np.where(jc_full_labels[:,idx] == 1)[0]
         if len(mask) == 0:
             continue
         else:
-            plt.scatter(cls_tokens_2d[m_idx*n_jets:(m_idx+1)*n_jets,0][mask], cls_tokens_2d[m_idx*n_jets:(m_idx+1)*n_jets,1][mask], 
-                c=color_idxs[idx]*len(mask), label=label,
-                cmap='viridis')
+            plt.scatter(cls_tokens_2d[real_m_idx*n_jets:(real_m_idx+1)*n_jets,0][mask], 
+                        cls_tokens_2d[real_m_idx*n_jets:(real_m_idx+1)*n_jets,1][mask], 
+                        c=color_idxs[idx]*len(mask), label=label,
+                        cmap='viridis')
     #plt.colorbar(label='Jet Class')
     plt.title(f'Projection of CLS Tokens, Interaction Strength: {model.mod.interaction_strength}')
     plt.xlabel('Principal Component 1')
     plt.ylabel('Principal Component 2')
     plt.legend(loc='upper right', bbox_to_anchor=(1.15, 1))
-    plt.savefig(f'./pca_plots/pca_cls_tokens_model_{m_idx}.png')
+    plt.savefig(f'./pca_plots/pca_cls_tokens_model_{real_m_idx}.png')
