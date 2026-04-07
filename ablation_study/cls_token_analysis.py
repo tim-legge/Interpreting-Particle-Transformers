@@ -51,11 +51,11 @@ import model_utils as mu
 import argparse
 parser = argparse.ArgumentParser(description='select the interaction parameters to run inference over')
 parser.add_argument('--num-models', '-n', type=int, default=101, help='total number of models / parameter values to run inference over')
-parser.add_argument('--range', '-r', type=str, required=True, help='range of the parameter values to run over (zero-indexed, starting with maximum interaction). Must input in format: <start_idx> <stop_idx>')
+parser.add_argument('--range', '-r', type=str, required=True, help='range of the parameter values to run over (zero-indexed, starting with maximum interaction). Must input in format: <start_idx>,<stop_idx>')
 args = parser.parse_args()
 
 num_models = args.num_models
-idx_range = args.range.split()
+idx_range = args.range.split(',')
 for idx, item in enumerate(idx_range):
     idx_range[idx] = int(item)
 model_path = '../models/ParT_full.pt'
@@ -71,7 +71,7 @@ for model in models:
 # in pod - larger data sample
 dataset_size = 100000
 n_jets = 1000
-storage_path = '/moe-interpretability-pv/'
+storage_path = '/moe-interpretability-pv/part_2d_pca_plots/'
 data_path = '/moe-interpretability-pv/datasets/'
 jc_full_pf_features = np.load(os.path.join(data_path, 'jc_full_pf_features.npy'))[::dataset_size//n_jets]
 jc_kin_pf_features = jc_full_pf_features[:,:7,:]
@@ -87,26 +87,26 @@ for m_idx, model in enumerate(models):
         y_pred.append(model(torch.from_numpy(jc_full_pf_points), torch.from_numpy(jc_full_pf_features), 
                     torch.from_numpy(jc_full_pf_vectors), torch.from_numpy(jc_full_pf_mask)))
 
-cls_tokens = []
-for cls_hook in cls_hooks:
-    cls_tokens.append(cls_hook.cls_tokens)
+    cls_tokens = []
+    for cls_hook in cls_hooks:
+        cls_tokens.append(cls_hook.cls_tokens)
 
-all_cls_tokens = np.concatenate(cls_tokens, axis=0)
-#print(all_cls_tokens.shape)  # should be (num_models * n_jets, hidden_dim)
-# PCA components on cls tokens
-pca = PCA(n_components=2)
-cls_tokens_2d = pca.fit_transform(all_cls_tokens)
-components = pca.components_
-explained_variance = pca.explained_variance_ratio_
-#print('pca components shape:', components.shape)
-#print("Explained Variance Ratio:\n", explained_variance)
+    all_cls_tokens = np.concatenate(cls_tokens, axis=0)
+    #print(all_cls_tokens.shape)  # should be (num_models * n_jets, hidden_dim)
+    # PCA components on cls tokens
+    pca = PCA(n_components=2)
+    cls_tokens_2d = pca.fit_transform(all_cls_tokens)
+    components = pca.components_
+    explained_variance = pca.explained_variance_ratio_
+    #print('pca components shape:', components.shape)
+    #print("Explained Variance Ratio:\n", explained_variance)
 
-idx_to_label = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
-color_idxs = [[f'C{i}'] for i in range(jc_full_labels.shape[1])]
-labels = [idx_to_label[np.argmax(jc_full_labels[i])] for i in range(n_jets)]
-if not os.path.exists('./pca_plots'):
-    subprocess.run(['mkdir', './pca_plots'])
-for m_idx, model in enumerate(models):
+    idx_to_label = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
+    color_idxs = [[f'C{i}'] for i in range(jc_full_labels.shape[1])]
+    labels = [idx_to_label[np.argmax(jc_full_labels[i])] for i in range(n_jets)]
+    if not os.path.exists('./pca_plots'):
+        subprocess.run(['mkdir', './pca_plots'])
+
     plt.figure(figsize=(8,6))
     real_m_idx = m_idx + idx_range[0]
     for idx, label in enumerate(idx_to_label):
@@ -114,8 +114,8 @@ for m_idx, model in enumerate(models):
         if len(mask) == 0:
             continue
         else:
-            plt.scatter(cls_tokens_2d[real_m_idx*n_jets:(real_m_idx+1)*n_jets,0][mask], 
-                        cls_tokens_2d[real_m_idx*n_jets:(real_m_idx+1)*n_jets,1][mask], 
+            plt.scatter(cls_tokens_2d[m_idx*n_jets:(m_idx+1)*n_jets,0][mask], 
+                        cls_tokens_2d[m_idx*n_jets:(m_idx+1)*n_jets,1][mask], 
                         c=color_idxs[idx]*len(mask), label=label,
                         cmap='viridis')
     #plt.colorbar(label='Jet Class')
@@ -123,4 +123,4 @@ for m_idx, model in enumerate(models):
     plt.xlabel('Principal Component 1')
     plt.ylabel('Principal Component 2')
     plt.legend(loc='upper right', bbox_to_anchor=(1.15, 1))
-    plt.savefig(f'./pca_plots/pca_cls_tokens_model_{real_m_idx}.png')
+    plt.savefig(f'{storage_path}pca_cls_tokens_model_{real_m_idx}.png')
