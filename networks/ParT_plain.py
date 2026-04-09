@@ -258,7 +258,7 @@ class Block(nn.Module):
     def __init__(self, embed_dim=128, num_heads=8, ffn_ratio=4,
                  dropout=0.1, attn_dropout=0.1, activation_dropout=0.1,
                  add_bias_kv=False, activation='gelu',
-                 scale_fc=True, scale_attn=True, scale_heads=True, scale_resids=True):
+                 scale_fc=True, scale_attn=True, scale_heads=True, return_pre_softmax = False, scale_resids=True):
         super().__init__()
 
         self.embed_dim = embed_dim
