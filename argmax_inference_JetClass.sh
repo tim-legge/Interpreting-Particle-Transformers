@@ -80,5 +80,5 @@ $CMD \
     --data-config data/JetClass/JetClass_${FEATURE_TYPE}.yaml --network-config $modelopts \
     --model-prefix ./models/argmax-ParT-10M.pt \
     $dataopts $batchopts \
-    --batch-size 256 --predict-output ./JetClass_10M_argmax_inference.root
+    --batch-size 512 --predict-output ./JetClass_10M_argmax_inference.root
     "${@:3}"
