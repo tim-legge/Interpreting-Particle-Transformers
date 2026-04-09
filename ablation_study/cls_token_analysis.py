@@ -97,6 +97,15 @@ all_cls_tokens = np.concatenate(cls_tokens, axis=0)
 pca = PCA(n_components=2)
 cls_tokens_2d = pca.fit_transform(all_cls_tokens)
 components = pca.components_
+if 0 in idx_range:
+    np.save('components.npy', components)
+else:
+    last_components = np.load('components.npy')
+    # test that corresponding components are roughly collinear, swap them if not
+    if np.dot(components[0], last_components[0]) < 0.5:
+        components[[0,1]] = components[[1,0]]
+    
+    np.save('components.npy', components)
 explained_variance = pca.explained_variance_ratio_
 #print('pca components shape:', components.shape)
 #print("Explained Variance Ratio:\n", explained_variance)
@@ -121,7 +130,9 @@ for m_idx, model in enumerate(models):
             plt.scatter(cls_tokens_2d[m_idx*n_jets:(m_idx+1)*n_jets,0][mask], 
                         cls_tokens_2d[m_idx*n_jets:(m_idx+1)*n_jets,1][mask], 
                         c=color_idxs[idx]*len(mask), label=label)
-    plt.title(f'Projection of CLS Tokens, Interaction Strength: {model.mod.interaction_strength}')
+    plt.title(f'Projection of CLS Tokens, Interaction Strength: {round(model.mod.interaction_strength,3)}')
+    plt.xlim(-7, 7)
+    plt.ylim(-7, 7)
     plt.xlabel('Principal Component 1')
     plt.ylabel('Principal Component 2')
     plt.legend(loc='upper right', bbox_to_anchor=(1.15, 1))
