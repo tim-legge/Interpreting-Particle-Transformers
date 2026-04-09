@@ -77,5 +77,5 @@ $CMD \
     --data-config data/JetClass/JetClass_${FEATURE_TYPE}.yaml --network-config $modelopts \
     --model-prefix ./models/JetClass_ParT_zeroed_interaction.pt \
     $dataopts $batchopts \
-    --batch-size 512 --predict-output ./ablation_study/JetClass_zeroed_interaction_inference.root
+    --batch-size 256 --predict-output ./ablation_study/JetClass_zeroed_interaction_inference.root
     "${@:3}"

@@ -2257,3 +2257,26 @@ def get_model(model_type='qg',**kwargs):
     }
 
     return model
+
+def load_jet_data(start=None, stop=None, step=None, feats='full', data_dir='./jc_full_data'):
+
+    slice_obj = np.s_[start:stop:step]
+
+    assert feats in ['full', 'kin', 'kinpid'], "feats must be one of 'full', 'kin', or 'kinpid'"
+    kin_slice = np.array([1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1], dtype=bool)
+    kinpid_slice = np.array([1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1], dtype=bool)
+
+    features = np.load(os.path.join(data_dir, 'jc_full_pf_features.npy'))[slice_obj]
+    if feats == 'full':
+        pass
+    elif feats == 'kin':
+        features = features[kin_slice]
+    elif feats == 'kinpid':
+        features = features[kinpid_slice]
+    
+    labels = np.load(os.path.join(data_dir, 'jc_full_labels.npy'))[slice_obj]
+    vectors = np.load(os.path.join(data_dir, 'jc_full_pf_vectors.npy'))[slice_obj]
+    mask = np.load(os.path.join(data_dir, 'jc_full_pf_mask.npy'))[slice_obj]
+    points = np.load(os.path.join(data_dir, 'jc_full_pf_points.npy'))[slice_obj]
+
+    return features, labels, mask, points, vectors

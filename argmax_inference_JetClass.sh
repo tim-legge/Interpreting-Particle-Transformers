@@ -78,7 +78,7 @@ $CMD \
     "ZToQQ:${DATADIR}/${SAMPLE_TYPE}/test_20M/ZToQQ_*.root" \
     "ZJetsToNuNu:${DATADIR}/${SAMPLE_TYPE}/test_20M/ZJetsToNuNu_*.root" \
     --data-config data/JetClass/JetClass_${FEATURE_TYPE}.yaml --network-config $modelopts \
-    --model-prefix ./models/ParT_full.pt \
+    --model-prefix ./models/argmax-ParT-10M.pt \
     $dataopts $batchopts \
-    --batch-size 256 --predict-output ./ablation_study/JetClass_zeroed_interaction_inference.root
+    --batch-size 256 --predict-output ./JetClass_10M_argmax_inference.root
     "${@:3}"
