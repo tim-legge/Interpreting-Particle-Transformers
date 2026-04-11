@@ -75,46 +75,6 @@ def boost(x, boostp4, eps=1e-8):
 def p3_norm(p, eps=1e-8):
     return p[:, :3] / p[:, :3].norm(dim=1, keepdim=True).clamp(min=eps)
 
-
-def pairwise_lv_fts(xi, xj, num_outputs=4, eps=1e-8, for_onnx=False):
-    pti, rapi, phii = to_ptrapphim(xi, False, eps=None, for_onnx=for_onnx).split((1, 1, 1), dim=1)
-    ptj, rapj, phij = to_ptrapphim(xj, False, eps=None, for_onnx=for_onnx).split((1, 1, 1), dim=1)
-
-    delta = delta_r2(rapi, phii, rapj, phij).sqrt()
-    lndelta = torch.log(delta.clamp(min=eps))
-    if num_outputs == 1:
-        return lndelta
-
-    if num_outputs > 1:
-        ptmin = ((pti <= ptj) * pti + (pti > ptj) * ptj) if for_onnx else torch.minimum(pti, ptj)
-        lnkt = torch.log((ptmin * delta).clamp(min=eps))
-        lnz = torch.log((ptmin / (pti + ptj).clamp(min=eps)).clamp(min=eps))
-        outputs = [lnkt, lnz, lndelta]
-
-    if num_outputs > 3:
-        xij = xi + xj
-        lnm2 = torch.log(to_m2(xij, eps=eps))
-        outputs.append(lnm2)
-
-    if num_outputs > 4:
-        lnds2 = torch.log(torch.clamp(-to_m2(xi - xj, eps=None), min=eps))
-        outputs.append(lnds2)
-
-    # the following features are not symmetric for (i, j)
-    if num_outputs > 5:
-        xj_boost = boost(xj, xij)
-        costheta = (p3_norm(xj_boost, eps=eps) * p3_norm(xij, eps=eps)).sum(dim=1, keepdim=True)
-        outputs.append(costheta)
-
-    if num_outputs > 6:
-        deltarap = rapi - rapj
-        deltaphi = delta_phi(phii, phij)
-        outputs += [deltarap, deltaphi]
-
-    assert (len(outputs) == num_outputs)
-    return torch.cat(outputs, dim=1)
-
-
 def build_sparse_tensor(uu, idx, seq_len):
     # inputs: uu (N, C, num_pairs), idx (N, 2, num_pairs)
     # return: (N, C, seq_len, seq_len)
@@ -230,7 +190,6 @@ class SequenceTrimmer(nn.Module):
 
         return x, v, mask, uu
 
-
 class Embed(nn.Module):
     def __init__(self, input_dim, dims, normalize_input=True, activation='gelu'):
         super().__init__()
@@ -338,8 +297,7 @@ class Block(nn.Module):
 
         return x
 
-
-class ParticleTransformer(nn.Module):
+class PlainParticleTransformer(nn.Module):
 
     def __init__(self,
                  input_dim,
@@ -475,10 +433,10 @@ class ParticleTransformer(nn.Module):
 
             return output
 
-class ParticleTransformerWrapper(torch.nn.Module):
+class PlainParticleTransformerWrapper(torch.nn.Module):
     def __init__(self, **kwargs) -> None:
         super().__init__()
-        self.mod = ParticleTransformer(**kwargs)
+        self.mod = PlainParticleTransformer(**kwargs)
 
     @torch.jit.ignore
     def no_weight_decay(self):
@@ -511,7 +469,7 @@ def get_model(data_config, **kwargs):
     cfg.update(**kwargs)
     _logger.info('Model config: %s' % str(cfg))
 
-    model = ParticleTransformerWrapper(**cfg)
+    model = PlainParticleTransformerWrapper(**cfg)
 
     model_info = {
         'input_names': list(data_config.input_names),

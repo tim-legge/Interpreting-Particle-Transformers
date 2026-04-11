@@ -2026,14 +2026,162 @@ class ParticleTransformerWrapper(torch.nn.Module):
 
     def get_interactionMatrix(self):
         return self.interactionMatrix
-    
+
+class PlainParticleTransformer(nn.Module):
+
+    def __init__(self,
+                 input_dim,
+                 num_classes=10,
+                 # network configurations
+                 pair_input_dim=4,
+                 pair_extra_dim=0,
+                 remove_self_pair=False,
+                 use_pre_activation_pair=True,
+                 embed_dims=[64, 64, 64],
+                 pair_embed_dims=[32, 32, 32],
+                 num_heads=1,
+                 num_layers=1,
+                 num_cls_layers=1,
+                 block_params=None,
+                 cls_block_params={'dropout': 0, 'attn_dropout': 0, 'activation_dropout': 0},
+                 fc_params=[],
+                 activation='gelu',
+                 # misc
+                 trim=True,
+                 for_inference=False,
+                 use_amp=False,
+                 return_pre_softmax=False,
+                 interaction_strength=1.0,
+                 **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        self.trimmer = SequenceTrimmer(enabled=trim and not for_inference)
+        self.attention_matrix = []
+        self.for_inference = for_inference
+        self.use_amp = use_amp
+        self.return_pre_softmax = return_pre_softmax
+        self.interaction_strength = interaction_strength
+
+        embed_dim = embed_dims[-1] if len(embed_dims) > 0 else input_dim
+        self.default_cfg = default_cfg = dict(embed_dim=embed_dim, num_heads=num_heads, ffn_ratio=4,
+                           dropout=0.1, attn_dropout=0.1, activation_dropout=0.1,
+                           add_bias_kv=False, activation=activation,
+                           scale_fc=True, scale_attn=True, scale_heads=True, scale_resids=True,
+                           return_pre_softmax=self.return_pre_softmax)
+        self.pairMatrixes = []
+
+        cfg_block = copy.deepcopy(default_cfg)
+        if block_params is not None:
+            cfg_block.update(block_params)
+        _logger.info('cfg_block: %s' % str(cfg_block))
+
+        cfg_cls_block = copy.deepcopy(default_cfg)
+        if cls_block_params is not None:
+            cfg_cls_block.update(cls_block_params)
+        _logger.info('cfg_cls_block: %s' % str(cfg_cls_block))
+
+        self.embed = Embed(input_dim, embed_dims, activation=activation) if len(embed_dims) > 0 else nn.Identity()
+        self.blocks = nn.ModuleList([Block(**cfg_block) for _ in range(num_layers)])
+        self.cls_blocks = nn.ModuleList([Block(**cfg_cls_block) for _ in range(num_cls_layers)])
+        self.norm = nn.LayerNorm(embed_dim)
+        self.interactionMatrix = None
+
+        if fc_params is not None:
+            fcs = []
+            in_dim = embed_dim
+            for out_dim, drop_rate in fc_params:
+                fcs.append(nn.Sequential(nn.Linear(in_dim, out_dim), nn.ReLU(), nn.Dropout(drop_rate)))
+                in_dim = out_dim
+            fcs.append(nn.Linear(in_dim, num_classes))
+            self.fc = nn.Sequential(*fcs)
+        else:
+            self.fc = None
+
+        # init
+        self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim), requires_grad=True)
+        trunc_normal_(self.cls_token, std=.02)
+
+    @torch.jit.ignore
+    def no_weight_decay(self):
+        return {'cls_token', }
+
+    def getAttention(self):
+        return self.attention_matrix
+
+    def getInteraction(self):
+        return self.interactionMatrix
+
+    def getPairs(self):
+        return self.pairMatrixes
+
+
+    def forward(self, x, v=None, mask=None, uu=None, uu_idx=None):
+        # x: (N, C, P)
+        # v: (N, 4, P) [px,py,pz,energy]
+        # mask: (N, 1, P) -- real particle = 1, padded = 0
+        # for pytorch: uu (N, C', num_pairs), uu_idx (N, 2, num_pairs)
+        # for onnx: uu (N, C', P, P), uu_idx=None
+
+        with torch.no_grad():
+            if not self.for_inference:
+                if uu_idx is not None:
+                    uu = build_sparse_tensor(uu, uu_idx, x.size(-1))
+            x, v, mask, uu = self.trimmer(x, v, mask, uu)
+            padding_mask = ~mask.squeeze(1)  # (N, P)
+
+        with torch.cuda.amp.autocast(enabled=self.use_amp):
+            # input embedding
+            x = self.embed(x).masked_fill(~mask.permute(2, 0, 1), 0)  # (P, N, C)
+            attn_mask = None
+            
+            # transform
+            #num = 0
+            for block in self.blocks:
+                if self.return_pre_softmax:
+                    x = block(x, x_cls=None, padding_mask=padding_mask, attn_mask=attn_mask)[0]
+                else:
+                    x = block(x, x_cls=None, padding_mask=padding_mask, attn_mask=attn_mask)
+
+            # extract class token
+            cls_tokens = self.cls_token.expand(1, x.size(1), -1)  # (1, N, C)
+            for block in self.cls_blocks:
+                if self.return_pre_softmax:
+                    cls_tokens = block(x, x_cls=cls_tokens, padding_mask=padding_mask)[0]
+                else:
+                    cls_tokens = block(x, x_cls=cls_tokens, padding_mask=padding_mask)
+
+            x_cls = self.norm(cls_tokens).squeeze(0)
+            # save cls tokens for analysis, scooped up by hooks
+            self.final_cls_token = x_cls
+
+            # fc
+            if self.fc is None:
+                return x_cls
+            output = self.fc(x_cls)
+            if self.for_inference:
+                output = torch.softmax(output, dim=1)
+
+            return output
+
+class PlainParticleTransformerWrapper(torch.nn.Module):
+    def __init__(self, **kwargs) -> None:
+        super().__init__()
+        self.mod = PlainParticleTransformer(**kwargs)
+
+    @torch.jit.ignore
+    def no_weight_decay(self):
+        return {'mod.cls_token', }
+
+    def forward(self, points, features, lorentz_vectors, mask):
+        return self.mod(features, v=lorentz_vectors, mask=mask)
+
 class ParT_Hook:
     def __init__(self, model, type='attention'):
         self.model = model
         self.kwargs = self.model.kwargs
         assert type in ['attention', 'class token', 'both'], "type must be one of 'attention', 'class token', or 'both'"
 
-        if isinstance(self.model, ParticleTransformerWrapper):
+        if isinstance(self.model, ParticleTransformerWrapper) or isinstance(self.model, PlainParticleTransformerWrapper):
             self.model = self.model.mod
 
         if type == 'attention' or type == 'both':
@@ -2226,7 +2374,6 @@ def get_model(model_type='qg',**kwargs):
             return_pre_softmax=True,
         )
     else:
-        print(f"Defaulting to Jet_Class-trained model configuration")
         cfg = dict(
             input_dim=17,
             num_classes=10,
@@ -2257,6 +2404,132 @@ def get_model(model_type='qg',**kwargs):
     }
 
     return model
+
+
+def get_plain_model(model_type, **kwargs):
+
+    if model_type == 'qg':
+        # QuarkGluon model configuration (13 kinpid features)
+        cfg = dict(
+            input_dim=13,  # pt_log, e_log, logptrel, logerel, deltaR, charge, isChargedHadron, isNeutralHadron, isPhoton, isElectron, isMuon, deta, dphi
+            num_classes=2,  # Quark vs Gluon
+            pair_input_dim=4,
+            use_pre_activation_pair=False,
+            embed_dims=[128, 512, 128],
+            pair_embed_dims=[64, 64, 64],
+            num_heads=8,
+            num_layers=8,
+            num_cls_layers=2,
+            block_params=None,
+            cls_block_params={'dropout': 0, 'attn_dropout': 0, 'activation_dropout': 0},
+            fc_params=[],
+            activation='gelu',
+            trim=True,
+            for_inference=False,
+        )
+    elif model_type == 'tl':
+        # TopLandscape model configuration (7 kinematic features)
+        cfg = dict(
+            input_dim=7,  # part_pt_log, part_e_log, part_logptrel, part_logerel, part_deltaR, part_deta, part_dphi
+            num_classes=2,  # Top vs QCD
+            pair_input_dim=4,
+            use_pre_activation_pair=False,
+            embed_dims=[128, 512, 128],
+            pair_embed_dims=[64, 64, 64],
+            num_heads=8,
+            num_layers=8,
+            num_cls_layers=2,
+            block_params=None,
+            cls_block_params={'dropout': 0, 'attn_dropout': 0, 'activation_dropout': 0},
+            fc_params=[],
+            activation='gelu',
+            trim=True,
+            for_inference=False,
+        )
+    elif model_type == 'hls4ml':
+        # HLS4ML model configuration
+        cfg = dict(
+            input_dim=16,  # see https://arxiv.org/pdf/1908.05318 pg. 3 "A constituent list for up to 150 particles..."
+            num_classes=5,  # Gluon, Quark, W, Z, Top
+            pair_input_dim=4,
+            use_pre_activation_pair=False,
+            embed_dims=[128, 512, 128],
+            pair_embed_dims=[64, 64, 64],
+            num_heads=8,
+            num_layers=8,
+            num_cls_layers=2,
+            block_params=None,
+            cls_block_params={'dropout': 0, 'attn_dropout': 0, 'activation_dropout': 0},
+            fc_params=[],
+            activation='gelu',
+            trim=True,
+            for_inference=False,
+        )
+    elif model_type == 'jck':
+        # JetClass kin model configuration (7 kinematic features)
+        cfg = dict(
+            input_dim=7,  # part_pt_log, part_e_log, part_logptrel, part_logerel, part_deltaR, part_deta, part_dphi
+            num_classes=10,
+            pair_input_dim=4,
+            use_pre_activation_pair=False,
+            embed_dims=[128, 512, 128],
+            pair_embed_dims=[64, 64, 64],
+            num_heads=8,
+            num_layers=8,
+            num_cls_layers=2,
+            block_params=None,
+            cls_block_params={'dropout': 0, 'attn_dropout': 0, 'activation_dropout': 0},
+            fc_params=[],
+            activation='gelu',
+            trim=True,
+            for_inference=False,
+        )
+    elif model_type == 'jck_pid':
+        # JetClass kin model configuration (7 kinematic features)
+        cfg = dict(
+            input_dim=13,  # part_pt_log, part_e_log, part_logptrel, part_logerel, part_deltaR, part_deta, part_dphi along with PID features
+            num_classes=10,
+            pair_input_dim=4,
+            use_pre_activation_pair=False,
+            embed_dims=[128, 512, 128],
+            pair_embed_dims=[64, 64, 64],
+            num_heads=8,
+            num_layers=8,
+            num_cls_layers=2,
+            block_params=None,
+            cls_block_params={'dropout': 0, 'attn_dropout': 0, 'activation_dropout': 0},
+            fc_params=[],
+            activation='gelu',
+            trim=True,
+            for_inference=False,
+        )
+    else:
+        cfg = dict(
+            input_dim=17,
+            num_classes=10,
+            # network configurations
+            pair_input_dim=4,
+            use_pre_activation_pair=False,
+            embed_dims=[128, 512, 128],
+            pair_embed_dims=[64, 64, 64],
+            num_heads=8,
+            num_layers=8,
+            num_cls_layers=2,
+            block_params=None,
+            cls_block_params={'dropout': 0, 'attn_dropout': 0, 'activation_dropout': 0},
+            fc_params=[],
+            activation='gelu',
+            # misc
+            trim=True,
+            for_inference=False,
+        )
+    
+    model = PlainParticleTransformerWrapper(**cfg)
+
+    model_info = {}
+
+    return model
+
 
 def load_jet_data(start=None, stop=None, step=None, feats='full', data_dir='./jc_full_data'):
 
