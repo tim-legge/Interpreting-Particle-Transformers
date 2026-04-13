@@ -73,23 +73,12 @@ with torch.no_grad():
 
 cls_tokens = cls_hook.cls_tokens
 
-all_cls_tokens = np.concatenate(cls_tokens, axis=0)
+all_cls_tokens = cls_tokens
 #print(all_cls_tokens.shape)  # should be (num_models * n_jets, hidden_dim)
 # PCA components on cls tokens
 pca = PCA(n_components=2)
 cls_tokens_2d = pca.fit_transform(all_cls_tokens)
 components = pca.components_
-if 0 in idx_range:
-    np.save('components.npy', components)
-else:
-    last_components = np.load('components.npy')
-    # test that corresponding components are roughly collinear, swap them if not
-    if np.dot(components[0], last_components[0]) < 0.5:
-        components[[0,1]] = components[[1,0]]
-    np.save('components.npy', components)
-explained_variance = pca.explained_variance_ratio_
-#print('pca components shape:', components.shape)
-#print("Explained Variance Ratio:\n", explained_variance)
 
 if not os.path.exists('./pca_plots'):
     subprocess.run(['mkdir', './pca_plots'])
@@ -106,8 +95,8 @@ for idx, label in enumerate(idx_to_label):
     if len(mask) == 0:
         continue
     else:
-        plt.scatter(cls_tokens_2d[n_jets:(1)*n_jets,0][mask], 
-                    cls_tokens_2d[n_jets:(1)*n_jets,1][mask], 
+        plt.scatter(cls_tokens_2d[:n_jets,0][mask], 
+                    cls_tokens_2d[:n_jets,1][mask], 
                     c=color_idxs[idx]*len(mask), label=label)
 plt.title(f'Projection of Plain CLS Tokens')
 plt.xlabel('Principal Component 1')

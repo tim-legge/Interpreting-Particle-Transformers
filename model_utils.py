@@ -2167,6 +2167,7 @@ class PlainParticleTransformerWrapper(torch.nn.Module):
     def __init__(self, **kwargs) -> None:
         super().__init__()
         self.mod = PlainParticleTransformer(**kwargs)
+        self.kwargs = kwargs
 
     @torch.jit.ignore
     def no_weight_decay(self):
