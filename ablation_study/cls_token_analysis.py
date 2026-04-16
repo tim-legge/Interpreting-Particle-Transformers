@@ -29,6 +29,7 @@ import random
 import warnings
 import copy
 from torch._C import _add_docstr, _infer_size
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.colorbar import ColorbarBase
@@ -52,15 +53,17 @@ import argparse
 parser = argparse.ArgumentParser(description='select the interaction parameters to run inference over')
 parser.add_argument('--num-models', '-n', type=int, default=101, help='total number of models / parameter values to run inference over')
 parser.add_argument('--range', '-r', type=str, required=True, help='range of the parameter values to run over (zero-indexed, starting with maximum interaction). Must input in format: <start_idx>,<stop_idx>')
+parser.add_argument('--dims-to-plot', '-d', type=int, nargs='+', default=[0,1], help='which PCA dimensions to plot (zero-indexed)')
 args = parser.parse_args()
 
 num_models = args.num_models
+dims_to_plot = args.dims_to_plot
 idx_range = args.range.split(',')
 for idx, item in enumerate(idx_range):
     idx_range[idx] = int(item)
     if int(item) >= num_models:
-        raise Warning(f'index {item} is out of bounds for number of models {num_models}. Setting to {num_models-1}')
         idx_range[idx] = num_models-1
+        raise Warning(f'index {item} is out of bounds for number of models {num_models}. Setting to {num_models-1}')
 model_path = '../models/ParT_full.pt'
 models = [mu.get_model('jc_full', interaction_strength=1-m_idx/(num_models-1)) for m_idx in range(num_models)]
 models = models[idx_range[0]:idx_range[1]]
@@ -97,15 +100,15 @@ for cls_hook in cls_hooks:
 all_cls_tokens = np.concatenate(cls_tokens, axis=0)
 #print(all_cls_tokens.shape)  # should be (num_models * n_jets, hidden_dim)
 # PCA components on cls tokens
-pca = PCA(n_components=2)
-cls_tokens_2d = pca.fit_transform(all_cls_tokens)
+pca = PCA(n_components=max(dims_to_plot)+1)
+cls_tokens_t = pca.fit_transform(all_cls_tokens)
 components = pca.components_
 if 0 in idx_range:
     np.save('components.npy', components)
 else:
     last_components = np.load('components.npy')
     # test that corresponding components are roughly collinear, swap them if not
-    if np.dot(components[0], last_components[0]) < 0.5:
+    if np.dot(components[0], last_components[0]) < 0.5 and np.dot(components[0], last_components[1]) > 0.5:
         components[[0,1]] = components[[1,0]]
     np.save('components.npy', components)
 explained_variance = pca.explained_variance_ratio_
@@ -118,6 +121,7 @@ if not os.path.exists('./pca_plots'):
 idx_to_label = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
 color_idxs = [[f'C{i}'] for i in range(jc_full_labels.shape[1])]
 labels = [idx_to_label[np.argmax(jc_full_labels[i])] for i in range(n_jets)]
+pred_labels = [y_pred[m_idx][i].argmax().item() for m_idx in range(len(models)) for i in range(n_jets)]
 #if not os.path.exists('./pca_plots'):
 #    subprocess.run(['mkdir', './pca_plots'])
 
@@ -129,15 +133,23 @@ for m_idx, model in enumerate(models):
         if len(mask) == 0:
             continue
         else:
-            plt.scatter(cls_tokens_2d[m_idx*n_jets:(m_idx+1)*n_jets,0][mask], 
-                        cls_tokens_2d[m_idx*n_jets:(m_idx+1)*n_jets,1][mask], 
+            plt.scatter(cls_tokens_t[m_idx*n_jets:(m_idx+1)*n_jets,dims_to_plot[0]][mask], 
+                        cls_tokens_t[m_idx*n_jets:(m_idx+1)*n_jets,dims_to_plot[1]][mask], 
                         c=color_idxs[idx]*len(mask), label=label)
+        for pred_idx, pred_label in enumerate(idx_to_label):
+            pred_mask = np.where(np.array(pred_labels) == pred_idx)[0]
+            if len(pred_mask) == 0:
+                continue
+            else:
+                plt.scatter(cls_tokens_t[m_idx*n_jets:(m_idx+1)*n_jets,dims_to_plot[0]][pred_mask], 
+                            cls_tokens_t[m_idx*n_jets:(m_idx+1)*n_jets,dims_to_plot[1]][pred_mask], 
+                            c=color_idxs[pred_idx]*len(pred_mask), s=(mpl.rcParams['lines.markersize']/2)**2)
     plt.title(f'Projection of CLS Tokens, Interaction Strength: {round(model.mod.interaction_strength,3)}')
-    plt.xlim(-5, 9)
-    plt.ylim(-6, 6)
-    plt.xlabel('Principal Component 1')
-    plt.ylabel('Principal Component 2')
+    #plt.xlim(-5, 9)
+    #plt.ylim(-6, 6)
+    plt.xlabel(f'Principal Component {dims_to_plot[0]+1}')
+    plt.ylabel(f'Principal Component {dims_to_plot[1]+1}')
     plt.legend(loc='upper right', bbox_to_anchor=(1.15, 1))
     #plt.show()
-    plt.savefig(f'./pca_plots/pca_cls_tokens_model_{real_m_idx}.png')
-    subprocess.run(['sudo', 'cp', f'./pca_plots/pca_cls_tokens_model_{real_m_idx}.png', storage_path])
+    plt.savefig(f'./pca_plots/pca_cls_tokens_model_{real_m_idx}_dims_{dims_to_plot[0]}{dims_to_plot[1]}.png')
+    subprocess.run(['sudo', 'cp', f'./pca_plots/pca_cls_tokens_model_{real_m_idx}_dims_{dims_to_plot[0]}{dims_to_plot[1]}.png', storage_path])
