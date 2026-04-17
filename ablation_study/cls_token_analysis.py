@@ -97,7 +97,7 @@ cls_tokens = []
 for cls_hook in cls_hooks:
     cls_tokens.append(cls_hook.cls_tokens)
 
-all_cls_tokens = np.concatenate(cls_tokens, axis=0)
+cls_tokens_t = np.concatenate(cls_tokens, axis=0)
 #print(all_cls_tokens.shape)  # should be (num_models * n_jets, hidden_dim)
 # PCA components on cls tokens
 pca = PCA(n_components=max(dims_to_plot)+1)
@@ -143,7 +143,7 @@ for m_idx, model in enumerate(models):
             else:
                 plt.scatter(cls_tokens_t[m_idx*n_jets:(m_idx+1)*n_jets,dims_to_plot[0]][pred_mask], 
                             cls_tokens_t[m_idx*n_jets:(m_idx+1)*n_jets,dims_to_plot[1]][pred_mask], 
-                            c=color_idxs[pred_idx]*len(pred_mask), s=(mpl.rcParams['lines.markersize']/2)**2)
+                            c=color_idxs[pred_idx]*len(pred_mask), s=(mpl.rcParams['lines.markersize']/4)**2)
     plt.title(f'Projection of CLS Tokens, Interaction Strength: {round(model.mod.interaction_strength,3)}')
     #plt.xlim(-5, 9)
     #plt.ylim(-6, 6)
