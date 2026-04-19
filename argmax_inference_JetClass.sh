@@ -78,7 +78,7 @@ $CMD \
     "ZToQQ:${DATADIR}/${SAMPLE_TYPE}/test_20M/ZToQQ_*.root" \
     "ZJetsToNuNu:${DATADIR}/${SAMPLE_TYPE}/test_20M/ZJetsToNuNu_*.root" \
     --data-config data/JetClass/JetClass_${FEATURE_TYPE}.yaml --network-config $modelopts \
-    --model-prefix ./models/argmax-ParT-10M.pt \
+    --model-prefix ./models/argmax-ParT-100M.pt \
     $dataopts $batchopts \
-    --batch-size 512 --predict-output ./JetClass_10M_argmax_inference.root
+    --batch-size 512 --predict-output
     "${@:3}"

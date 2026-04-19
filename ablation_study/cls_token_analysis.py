@@ -98,10 +98,10 @@ for cls_hook in cls_hooks:
     cls_tokens.append(cls_hook.cls_tokens)
 
 cls_tokens_t = np.concatenate(cls_tokens, axis=0)
-#print(all_cls_tokens.shape)  # should be (num_models * n_jets, hidden_dim)
+#print(cls_tokens_t.shape)  # should be (num_models * n_jets, hidden_dim)
 # PCA components on cls tokens
 pca = PCA(n_components=max(dims_to_plot)+1)
-cls_tokens_t = pca.fit_transform(all_cls_tokens)
+cls_tokens_t = pca.fit_transform(cls_tokens_t)
 components = pca.components_
 if 0 in idx_range:
     np.save('components.npy', components)
