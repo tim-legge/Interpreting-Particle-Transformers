@@ -80,5 +80,5 @@ $CMD \
     --data-config data/JetClass/JetClass_${FEATURE_TYPE}.yaml --network-config $modelopts \
     --model-prefix ./models/argmax-ParT-100M.pt \
     $dataopts $batchopts \
-    --batch-size 512 --predict-output
+    --batch-size 512
     "${@:3}"
