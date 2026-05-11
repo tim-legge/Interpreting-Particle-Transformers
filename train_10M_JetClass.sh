@@ -38,6 +38,9 @@ elif [[ "$model" == "Argmax-ParT" ]]; then
 elif [[ "$model" == "Plain-ParT" ]]; then
     modelopts="networks/ParT_plain.py --use-amp"
     batchopts="--batch-size 512 --start-lr 1e-3"
+elif [[ "$model" == "Less-U-ParT" ]]; then
+    modelopts="networks/ParT_less_u.py --use-amp"
+    batchopts="--batch-size 512 --start-lr 1e-3"
 elif [[ "$model" == "GLA" ]]; then
     modelopts="networks/gla_transformer.py"
     batchopts="--batch-size 512 --start-lr 1e-3"
