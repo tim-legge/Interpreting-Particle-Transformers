@@ -44,7 +44,9 @@ import subprocess
 import argparse
 import logging
 
-from model_utils import *
+import model_utils as mu
+
+print(os.getcwd())
 
 parser = argparse.ArgumentParser(description='Lepton job specs.')
 parser.add_argument('--class-to-analyze', '-a', type=str, help='Class to analyze (Hqql, Tbl)')
@@ -60,9 +62,9 @@ num_chunks = args.num_chunks
 restart = args.restart
 plot_q = args.plot
 
-jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
+jc_full_model = mu.get_model(model_type='jc_full', return_pre_softmax=True)
 
-jc_full_hooks = ParT_Hook(model=jc_full_model)
+jc_full_hooks = mu.ParT_Hook(model=jc_full_model)
 
 classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
 start_indices = np.array([8, 0, 1, 2, 4, 3, 9, 7, 6, 5]) * 10000
@@ -91,10 +93,10 @@ else:
 
 subprocess.run(['sudo', 'chmod', '666', 'counter.txt'])
 
-jc_kin_lepton_attention = get_model('jck')
+jc_kin_lepton_attention = mu.get_model('jck')
 model_path = '/home/jovyan/Interpreting-Particle-Transformers/models/ParT_kin.pt'
 jc_kin_lepton_attention.load_state_dict(torch.load(model_path, map_location='cpu'))
-init_lepton_attention = get_model('jck')
+init_lepton_attention = mu.get_model('jck')
 
 jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')
 jc_full_pf_vectors = np.load(dataset_path+'jc_full_pf_vectors.npy')
@@ -113,8 +115,8 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
 
     assert jc_labels.shape[0] == howmanyjets, f"Expected {howmanyjets} jets, but got {jc_labels.shape[0]}"
 
-    jc_kin_lepton_attention_hooks = ParT_Hook(model=jc_kin_lepton_attention)
-    init_lepton_attention_hooks = ParT_Hook(model=init_lepton_attention)
+    jc_kin_lepton_attention_hooks = mu.ParT_Hook(model=jc_kin_lepton_attention)
+    init_lepton_attention_hooks = mu.ParT_Hook(model=init_lepton_attention)
 
     init_lepton_attention.eval()
     with torch.no_grad():

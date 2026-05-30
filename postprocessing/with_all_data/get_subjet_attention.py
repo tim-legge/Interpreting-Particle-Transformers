@@ -46,8 +46,8 @@ import logging
 
 import sys
 sys.path.append('../')
-from model_utils import *
-from subjet_utils import *
+import model_utils as mu
+import subjet_utils as su
 
 parser = argparse.ArgumentParser(description='Subjet attention job specs.')
 parser.add_argument('--class-to-analyze', '-a', type=str, help='Class to analyze (H4q, Tbqq)')
@@ -65,9 +65,9 @@ restart = args.restart
 zero_u_only = args.zero_u
 plot_q = args.plot
 
-jc_full_model = get_model(model_type='jc_full', return_pre_softmax=True)
+jc_full_model = mu.get_model(model_type='jc_full', return_pre_softmax=True)
 
-jc_full_hooks = ParT_Hook(model=jc_full_model)
+jc_full_hooks = mu.ParT_Hook(model=jc_full_model)
 
 classes = ['QCD', 'Hbb', 'Hcc', 'Hgg', 'H4q', 'Hqql', 'Zqq', 'Wqq', 'Tbqq', 'Tbl']
 subjets = [1, 2, 2, 2, 4, 3, 2, 2, 3, 2]
@@ -98,12 +98,12 @@ else:
 
 subprocess.run(['sudo', 'chmod', '666', 'counter.txt'])
 
-jc_kin_lepton_attention = get_model('jck')
+jc_kin_lepton_attention = mu.get_model('jck')
 model_path = '/home/jovyan/Interpreting-Particle-Transformers/models/ParT_kin.pt'
 zero_u_model_path = '/home/jovyan/Interpreting-Particle-Transformers/models/JetClass_Kin_ParT_zeroed_interaction.pt'
 jc_kin_lepton_attention.load_state_dict(torch.load(model_path, map_location='cpu'))
-init_lepton_attention = get_model('jck')
-zero_u_jc_kin = get_model('jck')
+init_lepton_attention = mu.get_model('jck')
+zero_u_jc_kin = mu.get_model('jck')
 zero_u_jc_kin.load_state_dict(torch.load(zero_u_model_path, map_location='cpu'))
 
 kin_slice = np.array([1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1], dtype=bool)
@@ -128,8 +128,8 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
 
         assert jc_labels.shape[0] == howmanyjets, f"Expected {howmanyjets} jets, but got {jc_labels.shape[0]}"
 
-        jc_kin_lepton_attention_hooks = ParT_Hook(model=jc_kin_lepton_attention)
-        init_lepton_attention_hooks = ParT_Hook(model=init_lepton_attention)
+        jc_kin_lepton_attention_hooks = mu.ParT_Hook(model=jc_kin_lepton_attention)
+        init_lepton_attention_hooks = mu.ParT_Hook(model=init_lepton_attention)
 
         init_lepton_attention.eval()
         with torch.no_grad():
@@ -266,7 +266,7 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
         subprocess.run(['sudo', 'mv', trained_file, storage_path])
 
     else:
-        zero_u_jc_kin_hooks = ParT_Hook(model=zero_u_jc_kin)
+        zero_u_jc_kin_hooks = mu.ParT_Hook(model=zero_u_jc_kin)
 
         zero_u_jc_kin.eval()
         with torch.no_grad():
