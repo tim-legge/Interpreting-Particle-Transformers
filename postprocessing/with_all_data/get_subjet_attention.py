@@ -105,7 +105,10 @@ jc_kin_lepton_attention = mu.get_model('jck')
 model_path = '/home/jovyan/Interpreting-Particle-Transformers/models/ParT_kin.pt'
 zero_u_model_path = '/home/jovyan/Interpreting-Particle-Transformers/models/JetClass_Kin_ParT_zeroed_interaction.pt'
 jc_kin_lepton_attention.load_state_dict(torch.load(model_path, map_location='cpu'))
-init_lepton_attention = mu.get_model('jck')
+if full_q:
+    init_lepton_attention = mu.get_model('jc_full')
+else:
+    init_lepton_attention = mu.get_model('jck')
 zero_u_jc_kin = mu.get_model('jck')
 zero_u_jc_kin.load_state_dict(torch.load(zero_u_model_path, map_location='cpu'))
 
@@ -114,6 +117,8 @@ kinpid_slice = np.array([1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1], dtype=bool)
 
 if not full_q:
     jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')[:,kin_slice,:]
+else:
+    jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')
 jc_full_pf_vectors = np.load(dataset_path+'jc_full_pf_vectors.npy')
 jc_full_pf_mask = np.load(dataset_path+'jc_full_pf_mask.npy')
 jc_full_pf_points = np.load(dataset_path+'jc_full_pf_points.npy')
