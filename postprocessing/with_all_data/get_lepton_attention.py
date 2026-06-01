@@ -44,9 +44,9 @@ import subprocess
 import argparse
 import logging
 
-import model_utils as mu
-
 print(os.getcwd())
+
+import model_utils as mu
 
 parser = argparse.ArgumentParser(description='Lepton job specs.')
 parser.add_argument('--class-to-analyze', '-a', type=str, help='Class to analyze (Hqql, Tbl)')

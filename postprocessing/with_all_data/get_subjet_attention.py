@@ -64,6 +64,7 @@ num_chunks = args.num_chunks
 restart = args.restart
 zero_u_only = args.zero_u
 plot_q = args.plot
+full_q = True
 
 jc_full_model = mu.get_model(model_type='jc_full', return_pre_softmax=True)
 
@@ -98,6 +99,8 @@ else:
 
 subprocess.run(['sudo', 'chmod', '666', 'counter.txt'])
 
+model_path = '/home/jovyan/Interpreting-Particle-Transformers/models/ParT_full.pt'
+jc_full_model.load_state_dict(torch.load(model_path, map_location='cpu'))
 jc_kin_lepton_attention = mu.get_model('jck')
 model_path = '/home/jovyan/Interpreting-Particle-Transformers/models/ParT_kin.pt'
 zero_u_model_path = '/home/jovyan/Interpreting-Particle-Transformers/models/JetClass_Kin_ParT_zeroed_interaction.pt'
@@ -109,7 +112,8 @@ zero_u_jc_kin.load_state_dict(torch.load(zero_u_model_path, map_location='cpu'))
 kin_slice = np.array([1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1], dtype=bool)
 kinpid_slice = np.array([1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1], dtype=bool)
 
-jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')[:,kin_slice,:]
+if not full_q:
+    jc_full_pf_features = np.load(dataset_path+'jc_full_pf_features.npy')[:,kin_slice,:]
 jc_full_pf_vectors = np.load(dataset_path+'jc_full_pf_vectors.npy')
 jc_full_pf_mask = np.load(dataset_path+'jc_full_pf_mask.npy')
 jc_full_pf_points = np.load(dataset_path+'jc_full_pf_points.npy')
@@ -125,10 +129,36 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
     jc_labels = jc_full_labels[counter:counter+howmanyjets]
 
     if not zero_u_only:
-
+        
         assert jc_labels.shape[0] == howmanyjets, f"Expected {howmanyjets} jets, but got {jc_labels.shape[0]}"
 
-        jc_kin_lepton_attention_hooks = mu.ParT_Hook(model=jc_kin_lepton_attention)
+        if full_q:
+            lepton_attention_hooks = mu.ParT_Hook(model=jc_full_model)
+
+            jc_full_model.eval()
+            with torch.no_grad():
+                y_pred = jc_full_model(torch.from_numpy(jc_full_pf_points),
+                                            torch.from_numpy(jc_full_pf_features),
+                                            torch.from_numpy(jc_full_pf_vectors),torch.from_numpy(jc_full_pf_mask))
+            logging.info('JC inference done!')
+            padding = lepton_attention_hooks.cut_padding(lepton_attention_hooks.pre_softmax_attentions, jc_full_pf_mask)
+            attn = lepton_attention_hooks.pre_softmax_attentions.numpy()
+            inter = lepton_attention_hooks.pre_softmax_interactions.numpy()
+        
+        else:
+            jc_kin_lepton_attention_hooks = mu.ParT_Hook(model=jc_kin_lepton_attention)
+            jc_kin_lepton_attention.eval()
+            with torch.no_grad():
+                y_pred= jc_kin_lepton_attention(torch.from_numpy(jc_pf_points),
+                                                    torch.from_numpy(jc_pf_features),
+                                                    torch.from_numpy(jc_pf_vectors),torch.from_numpy(jc_pf_mask))
+
+            logging.info('JC inference done!')
+
+            padding = jc_kin_lepton_attention_hooks.cut_padding(jc_kin_lepton_attention_hooks.pre_softmax_attentions, jc_pf_mask)    
+            attn = jc_kin_lepton_attention_hooks.pre_softmax_attentions.numpy()
+            inter = jc_kin_lepton_attention_hooks.pre_softmax_interactions.numpy()
+
         init_lepton_attention_hooks = mu.ParT_Hook(model=init_lepton_attention)
 
         init_lepton_attention.eval()
@@ -137,19 +167,7 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                                         torch.from_numpy(jc_pf_features),
                                         torch.from_numpy(jc_pf_vectors),torch.from_numpy(jc_pf_mask))
 
-        jc_kin_lepton_attention.eval()
-        with torch.no_grad():
-            jck_y_pred= jc_kin_lepton_attention(torch.from_numpy(jc_pf_points),
-                                                torch.from_numpy(jc_pf_features),
-                                                torch.from_numpy(jc_pf_vectors),torch.from_numpy(jc_pf_mask))
-
-        logging.info('JC inference done!')
-
-        jc_kin_padding = jc_kin_lepton_attention_hooks.cut_padding(jc_kin_lepton_attention_hooks.pre_softmax_attentions, jc_pf_mask)
-        jc_kin_init_padding = init_lepton_attention_hooks.cut_padding(init_lepton_attention_hooks.pre_softmax_attentions, jc_pf_mask)
-        
-        attn = jc_kin_lepton_attention_hooks.pre_softmax_attentions.numpy()
-        inter = jc_kin_lepton_attention_hooks.pre_softmax_interactions.numpy()
+        init_padding = init_lepton_attention_hooks.cut_padding(init_lepton_attention_hooks.pre_softmax_attentions, jc_pf_mask)
 
         init_attn = init_lepton_attention_hooks.pre_softmax_attentions.numpy()
         init_inter = init_lepton_attention_hooks.pre_softmax_interactions.numpy()
@@ -166,19 +184,19 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
         for li, x in enumerate(tqdm(attn, desc="Layers")):         # x: (N, H, 128, 128)
             for ni, z in enumerate(x):                              # z: (H, 128, 128)
                 # Extract the 4-momentum components for the valid particles
-                px = jc_pf_vectors[ni][0][0:jc_kin_padding[ni]]
-                py = jc_pf_vectors[ni][1][0:jc_kin_padding[ni]]
-                pz = jc_pf_vectors[ni][2][0:jc_kin_padding[ni]]
-                e = jc_pf_vectors[ni][3][0:jc_kin_padding[ni]]
+                px = jc_pf_vectors[ni][0][0:padding[ni]]
+                py = jc_pf_vectors[ni][1][0:padding[ni]]
+                pz = jc_pf_vectors[ni][2][0:padding[ni]]
+                e = jc_pf_vectors[ni][3][0:padding[ni]]
                 
                 # Get the subjets using the get_subjets function
 
-                subjets, subjet_vectors = get_subjets(px, py, pz, e, N_SUBJETS=N_SUBJETS, JET_ALGO="kt")
+                subjets, subjet_vectors = su.get_subjets(px, py, pz, e, N_SUBJETS=N_SUBJETS, JET_ALGO="kt")
 
                 # muon/electron key columns for THIS SAMPLE
                 #key_mask = (jc_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
                 #            jc_pf_features[ni, MUON_IDX, :].astype(bool))
-                subjets_mask = np.empty((jc_kin_padding[ni],N_SUBJETS), dtype=bool)
+                subjets_mask = np.empty((padding[ni],N_SUBJETS), dtype=bool)
                 for si in range(N_SUBJETS):
                     subjets_mask[:,si] = np.where((si == subjets), True, False)
 
@@ -196,7 +214,7 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                     # mask attention matrix to each subjet
                     A_total_subjet = np.zeros(N_SUBJETS)
                     for si in range(N_SUBJETS):
-                        A_subjet = A_pos[:jc_kin_padding[ni], :jc_kin_padding[ni]][subjets_mask[:,si]][:,subjets_mask[:,si]]
+                        A_subjet = A_pos[:padding[ni], :padding[ni]][subjets_mask[:,si]][:,subjets_mask[:,si]]
             
                         # attention within the subjet
                         A_total_subjet[si] = np.nansum(A_subjet)
@@ -214,19 +232,19 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
         for li, x in enumerate(tqdm(init_attn, desc="Layers")):         # x: (N, H, 128, 128)
             for ni, z in enumerate(x):                              # z: (H, 128, 128)
                 # Extract the 4-momentum components for the valid particles
-                px = jc_pf_vectors[ni][0][0:jc_kin_padding[ni]]
-                py = jc_pf_vectors[ni][1][0:jc_kin_padding[ni]]
-                pz = jc_pf_vectors[ni][2][0:jc_kin_padding[ni]]
-                e = jc_pf_vectors[ni][3][0:jc_kin_padding[ni]]
+                px = jc_pf_vectors[ni][0][0:padding[ni]]
+                py = jc_pf_vectors[ni][1][0:padding[ni]]
+                pz = jc_pf_vectors[ni][2][0:padding[ni]]
+                e = jc_pf_vectors[ni][3][0:padding[ni]]
                 
                 # Get the subjets using the get_subjets function
 
-                subjets, subjet_vectors = get_subjets(px, py, pz, e, N_SUBJETS=N_SUBJETS, JET_ALGO="kt")
+                subjets, subjet_vectors = su.get_subjets(px, py, pz, e, N_SUBJETS=N_SUBJETS, JET_ALGO="kt")
 
                 # muon/electron key columns for THIS SAMPLE
                 #key_mask = (jc_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
                 #            jc_pf_features[ni, MUON_IDX, :].astype(bool))
-                subjets_mask = np.empty((jc_kin_padding[ni],N_SUBJETS), dtype=bool)
+                subjets_mask = np.empty((padding[ni],N_SUBJETS), dtype=bool)
                 for si in range(N_SUBJETS):
                     subjets_mask[:,si] = np.where((si == subjets), True, False)
 
@@ -244,7 +262,7 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                     # mask attention matrix to each subjet
                     A_total_subjet = np.zeros(N_SUBJETS)
                     for si in range(N_SUBJETS):
-                        A_subjet = A_pos[:jc_kin_padding[ni], :jc_kin_padding[ni]] * (subjets_mask[:,si][:,None] * subjets_mask[:,si][None,:])
+                        A_subjet = A_pos[:padding[ni], :padding[ni]] * (subjets_mask[:,si][:,None] * subjets_mask[:,si][None,:])
                         # attention within the subjet
                         A_total_subjet[si] = np.nansum(A_subjet)
                     
@@ -274,7 +292,7 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                                                 torch.from_numpy(jc_pf_features),
                                                 torch.from_numpy(jc_pf_vectors),torch.from_numpy(jc_pf_mask))
         
-        jc_kin_padding = zero_u_jc_kin_hooks.cut_padding(zero_u_jc_kin_hooks.pre_softmax_attentions, jc_pf_mask)
+        padding = zero_u_jc_kin_hooks.cut_padding(zero_u_jc_kin_hooks.pre_softmax_attentions, jc_pf_mask)
 
         zero_u_attn = zero_u_jc_kin_hooks.pre_softmax_attentions.numpy()
         zero_u_inter = zero_u_jc_kin_hooks.pre_softmax_interactions.numpy()
@@ -288,10 +306,10 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
         for li, x in enumerate(tqdm(zero_u_attn, desc="Layers")):         # x: (N, H, 128, 128)
             for ni, z in enumerate(x):                              # z: (H, 128, 128)
                 # Extract the 4-momentum components for the valid particles
-                px = jc_pf_vectors[ni][0][0:jc_kin_padding[ni]]
-                py = jc_pf_vectors[ni][1][0:jc_kin_padding[ni]]
-                pz = jc_pf_vectors[ni][2][0:jc_kin_padding[ni]]
-                e = jc_pf_vectors[ni][3][0:jc_kin_padding[ni]]
+                px = jc_pf_vectors[ni][0][0:padding[ni]]
+                py = jc_pf_vectors[ni][1][0:padding[ni]]
+                pz = jc_pf_vectors[ni][2][0:padding[ni]]
+                e = jc_pf_vectors[ni][3][0:padding[ni]]
                 
                 # Get the subjets using the get_subjets function
 
@@ -300,7 +318,7 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                 # muon/electron key columns for THIS SAMPLE
                 #key_mask = (jc_pf_features[ni, ELECTRON_IDX, :].astype(bool) |
                 #            jc_pf_features[ni, MUON_IDX, :].astype(bool))
-                subjets_mask = np.empty((jc_kin_padding[ni],N_SUBJETS), dtype=bool)
+                subjets_mask = np.empty((padding[ni],N_SUBJETS), dtype=bool)
                 for si in range(N_SUBJETS):
                     subjets_mask[:,si] = np.where((si == subjets), True, False)
 
@@ -318,7 +336,7 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
                     # mask attention matrix to each subjet
                     A_total_subjet = np.zeros(N_SUBJETS)
                     for si in range(N_SUBJETS):
-                        A_subjet = A_pos[:jc_kin_padding[ni], :jc_kin_padding[ni]][subjets_mask[:,si]][:,subjets_mask[:,si]]
+                        A_subjet = A_pos[:padding[ni], :padding[ni]][subjets_mask[:,si]][:,subjets_mask[:,si]]
             
                         # attention within the subjet
                         A_total_subjet[si] = np.nansum(A_subjet)
