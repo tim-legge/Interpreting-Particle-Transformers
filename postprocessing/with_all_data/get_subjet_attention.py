@@ -45,7 +45,7 @@ import argparse
 import logging
 
 import sys
-sys.path.append('../')
+sys.path.append('/home/jovyan/Interpreting-Particle-Transformers/')
 import model_utils as mu
 import subjet_utils as su
 
@@ -137,9 +137,9 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
 
             jc_full_model.eval()
             with torch.no_grad():
-                y_pred = jc_full_model(torch.from_numpy(jc_full_pf_points),
-                                            torch.from_numpy(jc_full_pf_features),
-                                            torch.from_numpy(jc_full_pf_vectors),torch.from_numpy(jc_full_pf_mask))
+                y_pred = jc_full_model(torch.from_numpy(jc_pf_points),
+                                            torch.from_numpy(jc_pf_features),
+                                            torch.from_numpy(jc_pf_vectors),torch.from_numpy(jc_pf_mask))
             logging.info('JC inference done!')
             padding = lepton_attention_hooks.cut_padding(lepton_attention_hooks.pre_softmax_attentions, jc_full_pf_mask)
             attn = lepton_attention_hooks.pre_softmax_attentions.numpy()
