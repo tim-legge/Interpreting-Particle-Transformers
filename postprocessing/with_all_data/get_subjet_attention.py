@@ -1,4 +1,4 @@
-# This script generated the final lepton histograms in the plot
+# This script generated the final subjet histograms in the plot
 
 from typing import List, Optional
 import timeit
@@ -77,7 +77,7 @@ total_jets = 10000
 
 start_jet = counter = start_indices[classes.index(class_to_analyze)] + chunk*(total_jets//num_chunks)
 N_SUBJETS = subjets[classes.index(class_to_analyze)]
-assert class_to_analyze in ['H4q', 'Tbqq'], 'to get lepton attention plots, please specify class as Hqql or Tbl'
+assert class_to_analyze in ['H4q', 'Tbqq'], 'to get lepton attention plots, please specify class as H4q or Tbqq'
 
 base_dir = '/moe-interpretability-pv/'
 

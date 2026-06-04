@@ -495,7 +495,7 @@ def get_subjets(px, py, pz, e, N_SUBJETS=3, JET_ALGO="kt", jet_radius=0.8):
 
     # cluster jets
     jets = cluster.inclusive_jets()
-    print(len(jets))
+    
     #assert len(jets) == 1
 
     # get the 3 exclusive jets
