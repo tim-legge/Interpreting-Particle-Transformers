@@ -81,7 +81,7 @@ else:
     with open(counter_path, 'r') as f:
         counter = int(f.read().strip())
 
-model = mu.load_model(dataset)
+model = mu.get_model(dataset)
 num_heads = model.num_heads
 num_layers = model.num_layers
 model_path = f'/home/jovyan/Interpreting-Particle-Transformers/models/ParT{dataset.split("_")[1]}.pt'
@@ -118,7 +118,7 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
     jc_pf_points = torch.from_numpy(jc_full_pf_points[counter:counter+howmanyjets])
     jc_labels = torch.from_numpy(jc_full_labels[counter:counter+howmanyjets])
 
-    hooks = mu.ParT_Hooks(model)
+    hooks = mu.ParT_Hook(model)
     model.eval()
     with torch.no_grad():
         _ = model(jc_pf_features, jc_pf_vectors, jc_pf_mask, jc_pf_points)
