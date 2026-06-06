@@ -82,9 +82,9 @@ else:
         counter = int(f.read().strip())
 
 model = mu.get_model(dataset)
-num_heads = model.num_heads
-num_layers = model.num_layers
-model_path = f'/home/jovyan/Interpreting-Particle-Transformers/models/ParT{dataset.split("_")[1]}.pt'
+num_heads = model.kwargs['num_heads']
+num_layers = model.kwargs['num_layers']
+model_path = f'/home/jovyan/Interpreting-Particle-Transformers/models/ParT_{dataset.split("_")[1]}.pt'
 model.load_state_dict(torch.load(model_path, map_location='cpu'))
 
 def flatten_deep(iterable):
@@ -121,7 +121,7 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
     hooks = mu.ParT_Hook(model)
     model.eval()
     with torch.no_grad():
-        _ = model(jc_pf_features, jc_pf_vectors, jc_pf_mask, jc_pf_points)
+        _ = model(jc_pf_points, jc_pf_features, jc_pf_vectors, jc_pf_mask)
         logging.info(f"Processed jets {counter} to {counter+howmanyjets} for chunk {chunk}")
     
     pad_limits = hooks.cut_padding(hooks.pre_softmax_attentions, jc_pf_mask)
@@ -148,19 +148,19 @@ while counter < start_jet + (total_jets//num_chunks) and not plot_q:
     subprocess.run(['sudo', 'cp', 'counter.txt', counter_path])
     logging.info(f"Saved histogram for chunk {chunk} at {hist_path}")
 
-all_hist = None
+all_hist = False
 
 if plot_q:
     for file in sorted(os.listdir(storage_path)):
         if file.endswith('hist.npy'):
             file_path = os.path.join(storage_path, file)
             hist = np.load(file_path)
-            if 'all_hist' is not None:
+            if not all_hist:
                 all_hist = hist.astype(np.float64)
             else:
                 all_hist += hist
 
-if all_hist is None:
+if all_hist:
     print("No histograms found.")
 else:
     # Normalize to probability distribution
